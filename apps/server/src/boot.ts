@@ -35,6 +35,33 @@ app.use(
 // Uptime / load-balancer probe — no auth, no DB, instant response.
 app.get("/health", (c) => c.json({ status: "ok", ts: Date.now() }));
 
+// Temporary: test Firebase Admin SDK initialization.
+app.get("/debug-firebase", async (c) => {
+  try {
+    const { getApps, initializeApp, cert } = await import("firebase-admin/app");
+    const { getAuth } = await import("firebase-admin/auth");
+    const key = process.env.FIREBASE_PRIVATE_KEY ?? "";
+    const keyInfo = {
+      length: key.length,
+      startsOk: key.startsWith("-----BEGIN"),
+      hasNewlines: key.includes("\n"),
+      hasLiteralN: key.includes("\\n"),
+      first50: key.slice(0, 50),
+    };
+    if (!getApps().length) {
+      initializeApp({ credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: key.replace(/\\n/g, "\n"),
+      })});
+    }
+    const auth = getAuth();
+    return c.json({ ok: true, apps: getApps().length, keyInfo });
+  } catch (err: any) {
+    return c.json({ ok: false, error: err?.message, code: err?.code }, 500);
+  }
+});
+
 // Dev-only one-shot migration for cleaning schema.
 // Hit GET /migrate-cleaning once after first deploy to create tables + seed data.
 if (process.env.NODE_ENV !== "production") {

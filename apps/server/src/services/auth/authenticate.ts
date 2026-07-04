@@ -51,8 +51,8 @@ export async function authenticateRequest(headers: Headers, db: Database): Promi
       .$returningId();
 
     return db.query.users.findFirst({ where: eq(users.id, row.id) });
-  } catch {
-    // Invalid / expired token — treat as anonymous.
+  } catch (err: any) {
+    console.error("[auth] verifyIdToken failed:", err?.code, err?.message);
     return undefined;
   }
 }
