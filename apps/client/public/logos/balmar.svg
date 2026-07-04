@@ -1,0 +1,26 @@
+<svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="white"/>
+  <!-- BALMAR bold italic navy text -->
+  <text x="200" y="228"
+    font-family="'Arial Black','Franklin Gothic Heavy','Impact',sans-serif"
+    font-size="100"
+    font-weight="900"
+    font-style="italic"
+    fill="#2B38AE"
+    text-anchor="middle"
+    letter-spacing="-2">BALMAR</text>
+  <!-- Registered mark -->
+  <text x="368" y="172"
+    font-family="Arial,sans-serif"
+    font-size="28"
+    fill="#2B38AE">®</text>
+  <!-- Orange subtitle -->
+  <text x="200" y="278"
+    font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+    font-size="28"
+    font-weight="700"
+    font-style="italic"
+    fill="#F5A623"
+    text-anchor="middle"
+    letter-spacing="3">MARKETLER ZİNCİRİ</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg viewBox="0 0 400 430" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="430" fill="white"/>
+  <!-- Blue border frame -->
+  <rect x="10" y="10" width="380" height="410" rx="7" fill="none" stroke="#1E2E8B" stroke-width="9"/>
+
+  <!-- 4 arch pillars forming top of M: 3 blue + 1 red -->
+  <!-- Arch 1 (blue) -->
+  <path d="M22,232 L22,76 Q22,32 64,32 Q107,32 107,76 L107,232 Z" fill="#1E2E8B"/>
+  <!-- Arch 2 (blue) -->
+  <path d="M113,232 L113,76 Q113,32 155,32 Q198,32 198,76 L198,232 Z" fill="#1E2E8B"/>
+  <!-- Arch 3 (blue) -->
+  <path d="M204,232 L204,76 Q204,32 246,32 Q289,32 289,76 L289,232 Z" fill="#1E2E8B"/>
+  <!-- Arch 4 (red) -->
+  <path d="M295,232 L295,76 Q295,32 337,32 Q378,32 378,76 L378,232 Z" fill="#CC1F1F"/>
+
+  <!-- Left leg of M (blue) -->
+  <rect x="22" y="236" width="85" height="88" fill="#1E2E8B"/>
+  <!-- Right leg of M (blue) -->
+  <rect x="295" y="236" width="83" height="88" fill="#1E2E8B"/>
+
+  <!-- MARKETİM text -->
+  <text x="200" y="400"
+    font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
+    font-size="35"
+    font-weight="900"
+    fill="#1E2E8B"
+    text-anchor="middle"
+    letter-spacing="2">MARKETİM</text>
+</svg>

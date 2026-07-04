@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1782841737045,
+      "tag": "0000_panoramic_bedlam",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1782850087697,
+      "tag": "0001_exotic_speed_demon",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 2,
+      "version": "5",
+      "when": 1782900000000,
+      "tag": "0002_firebase_uid",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 3,
+      "version": "5",
+      "when": 1783179000000,
+      "tag": "0003_cleaning_pricing",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,215 @@
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--c-bg);
+}
+
+/* ── Hero strip (lime top section) ── */
+.login-page__hero {
+  background: var(--c-primary);
+  padding: 56px 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-page__hero::after {
+  content: "";
+  position: absolute;
+  bottom: -28px;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--c-bg);
+  border-radius: 28px 28px 0 0;
+}
+
+.login-page__greeting {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--c-primary-text);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  white-space: pre-line;
+}
+
+.login-page__subtitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(26, 26, 46, 0.6);
+  line-height: 1.5;
+}
+
+/* ── Character illustration ── */
+.login-page__illustration {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+}
+
+/* ── Card body ── */
+.login-page__body {
+  flex: 1;
+  padding: 36px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Google button ── */
+.login-page__google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--r-2xl);
+  background: white;
+  color: var(--c-text);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.login-page__google-btn:hover {
+  border-color: #94a3b8;
+  box-shadow: var(--shadow-md);
+}
+
+.login-page__google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Divider ── */
+.login-page__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0;
+  color: var(--c-text-3);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.login-page__divider::before,
+.login-page__divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--c-border);
+}
+
+/* ── Tabs ── */
+.login-page__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--c-bg);
+  border-radius: var(--r-xl);
+  padding: 4px;
+  margin-bottom: 20px;
+}
+
+.login-page__tab {
+  padding: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-2);
+  background: none;
+  border: none;
+  border-radius: var(--r-lg);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.login-page__tab.is-active {
+  background: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+/* ── Form ── */
+.login-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-page__field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.login-page__field input {
+  padding: 13px 16px;
+  border-radius: var(--r-xl);
+  border: 1.5px solid var(--c-border);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--c-text);
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.login-page__field input:focus {
+  outline: none;
+  border-color: var(--c-primary-dark);
+  box-shadow: 0 0 0 3px rgba(202, 239, 69, 0.25);
+}
+
+.login-page__error {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-danger);
+  background: var(--c-danger-50);
+  border: 1px solid #fecaca;
+  border-radius: var(--r-lg);
+  padding: 10px 14px;
+}
+
+/* ── Submit button ── */
+.login-page__submit {
+  margin-top: 8px;
+  padding: 16px;
+  border: none;
+  border-radius: var(--r-2xl);
+  background: var(--c-primary);
+  color: var(--c-primary-text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-lime);
+  transition: background 0.15s, box-shadow 0.15s, opacity 0.15s;
+  letter-spacing: -0.01em;
+}
+
+.login-page__submit:hover {
+  background: var(--c-primary-dark);
+  color: white;
+}
+
+.login-page__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

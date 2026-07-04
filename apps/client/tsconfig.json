@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM"],
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "types": ["vite/client", "google.maps"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@boh/api": ["../../packages/api/src/index.ts"],
+      "@boh/contracts": ["../../packages/contracts/src/index.ts"],
+      "@boh/server": ["../../apps/server/src/index.ts"],
+      "@boh/db": ["../../packages/db/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
