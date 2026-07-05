@@ -145,7 +145,7 @@ export async function acceptOrder(db: Database, worker: User, orderId: string) {
   }
 
   try {
-    await syncOrderState(orderId, { status: "ACCEPTED", workerId: String(worker.id) });
+    await syncOrderState(orderId, { status: "ACCEPTED", workerId: String(worker.id), workerFirebaseUid: worker.firebaseUid });
   } catch (err) {
     console.error(`[order.service] Failed to sync ACCEPTED state for ${orderId} to Firestore`, err);
   }

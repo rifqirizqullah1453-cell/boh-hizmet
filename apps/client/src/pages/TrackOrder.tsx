@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/firebase/config';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrders } from '@/contexts/OrderContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -44,6 +46,7 @@ export default function TrackOrder() {
   const { orders, cancelOrder, rateOrder, updateOrderStatus, sendEmergency, markPaid, refreshOrders } = useOrders();
   const { toast } = useToast();
   const [order, setOrder] = useState<typeof orders[0] | null>(null);
+  const [liveWorkerLocation, setLiveWorkerLocation] = useState<{ lat: number; lng: number; timestamp: number } | null>(null);
   const [showRating, setShowRating] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
@@ -56,6 +59,31 @@ export default function TrackOrder() {
 
   useEffect(() => { if (orderId) { const o = orders.find(x => x.id === orderId); if (o) setOrder(o); } }, [orderId, orders]);
   useEffect(() => { if (orderId) setPhotos(loadPhotos(orderId)); }, [orderId]);
+
+  // Subscribe to Firestore active_orders to get workerFirebaseUid, then subscribe to worker_locations for live GPS
+  useEffect(() => {
+    if (!orderId) return;
+    let locationUnsub: (() => void) | undefined;
+
+    const orderUnsub = onSnapshot(doc(db, 'active_orders', orderId), (snap) => {
+      if (!snap.exists()) return;
+      const workerFirebaseUid = snap.data()?.workerFirebaseUid as string | undefined;
+      if (!workerFirebaseUid) return;
+
+      // Stop previous location subscription if worker changed
+      locationUnsub?.();
+      locationUnsub = onSnapshot(doc(db, 'worker_locations', workerFirebaseUid), (locSnap) => {
+        if (!locSnap.exists()) return;
+        const data = locSnap.data();
+        setLiveWorkerLocation({ lat: data.lat, lng: data.lng, timestamp: data.updatedAt ?? Date.now() });
+      });
+    });
+
+    return () => {
+      orderUnsub();
+      locationUnsub?.();
+    };
+  }, [orderId]);
 
   useEffect(() => {
     if (!order || order.status === 'completed' || order.status === 'cancelled') return;
@@ -129,12 +157,12 @@ export default function TrackOrder() {
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
       {/* Map */}
       <div className="h-[32vh] relative">
-        <MapLeaflet pickupLat={order.pickupLat} pickupLng={order.pickupLng} destLat={order.destinationLat} destLng={order.destinationLng} workerLat={order.workerLocation?.lat} workerLng={order.workerLocation?.lng} showRoute={true} interactive={false} height="100%" />
+        <MapLeaflet pickupLat={order.pickupLat} pickupLng={order.pickupLng} destLat={order.destinationLat} destLng={order.destinationLng} workerLat={liveWorkerLocation?.lat ?? order.workerLocation?.lat} workerLng={liveWorkerLocation?.lng ?? order.workerLocation?.lng} showRoute={true} interactive={false} height="100%" />
         <motion.button onClick={() => navigate(-1)} whileTap={{ scale: 0.9 }} className="absolute top-4 left-4 z-20 p-2.5 rounded-xl bg-white card-bg shadow-lg"><ChevronLeft className="w-5 h-5" style={{ color: 'var(--text)' }} /></motion.button>
-        {order.workerLocation && order.status !== 'completed' && order.status !== 'cancelled' && (
+        {(liveWorkerLocation || order.workerLocation) && order.status !== 'completed' && order.status !== 'cancelled' && (
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="absolute top-4 right-4 z-20 px-3 py-1.5 rounded-full bg-white card-bg shadow-lg flex items-center gap-1.5">
             <motion.div className="w-2 h-2 rounded-full bg-emerald-500" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
-            <span className="text-[10px] font-bold text-emerald-600">LIVE</span>
+            <span className="text-[10px] font-bold text-emerald-600">{liveWorkerLocation ? 'LIVE' : 'GPS'}</span>
           </motion.div>
         )}
       </div>
@@ -276,12 +304,12 @@ export default function TrackOrder() {
                   </div>
                   <motion.a href={`tel:${order.workerPhone}`} whileTap={{ scale: 0.9 }} className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #4DD4E0, #2BC5D4)' }}><Phone className="w-4 h-4 text-white" /></motion.a>
                 </div>
-                {order.workerLocation && order.status !== 'completed' && (
+                {(liveWorkerLocation || order.workerLocation) && order.status !== 'completed' && (
                   <div className="mt-3 p-2.5 rounded-xl flex items-center gap-2" style={{ background: '#ECFDF5' }}>
                     <Radio className="w-4 h-4 text-emerald-500" />
                     <div className="flex-1">
-                      <p className="text-[10px] font-bold text-emerald-600">Tracking Active</p>
-                      <p className="text-[10px] text-emerald-500">Updated {Math.round((Date.now() - order.workerLocation.timestamp) / 1000)}s ago</p>
+                      <p className="text-[10px] font-bold text-emerald-600">{liveWorkerLocation ? 'Live Tracking Active' : 'Tracking Active'}</p>
+                      <p className="text-[10px] text-emerald-500">Updated {Math.round((Date.now() - (liveWorkerLocation?.timestamp ?? order.workerLocation?.timestamp ?? Date.now())) / 1000)}s ago</p>
                     </div>
                     <div className="flex items-center gap-1"><motion.div className="w-2 h-2 rounded-full bg-emerald-500" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} /><span className="text-[10px] font-bold text-emerald-600">LIVE</span></div>
                   </div>

@@ -69,6 +69,7 @@ export const activeOrderDoc = z.object({
   price: z.number(),
   customerName: z.string(),
   workerId: z.string().nullable(),
+  workerFirebaseUid: z.string().nullable().optional(),
   createdAt: z.number(), // epoch ms, set by server at broadcast time
   notes: z.string().nullable().optional(),
 });

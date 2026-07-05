@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useChat } from '@/contexts/ChatContext';
 import { useOrders } from '@/contexts/OrderContext';
+import { useOrderChat } from '@/hooks/useOrderChat';
+import { auth } from '@/firebase/config';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Send, Phone, MapPin, ArrowDown } from 'lucide-react';
 
@@ -38,8 +39,8 @@ export default function ChatRoom() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { getMessages, sendOrderMessage: sendMessage } = useChat();
   const { orders } = useOrders();
+  const { messages: firestoreMessages, loading, sendMessage: sendFirestoreMessage } = useOrderChat(orderId);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [showScrollBtn, setShowScrollBtn] = useState(false);
@@ -49,17 +50,10 @@ export default function ChatRoom() {
   const prevMsgCountRef = useRef(0);
   const order = orders.find((o) => o.id === orderId);
 
-  // Poll for new messages every 2 seconds
+  // Sync Firestore messages to local state
   useEffect(() => {
-    if (!orderId) return;
-    const refresh = () => {
-      const msgs = getMessages(orderId);
-      setMessages(msgs);
-    };
-    refresh();
-    const interval = setInterval(refresh, 2000);
-    return () => clearInterval(interval);
-  }, [orderId, getMessages]);
+    setMessages(firestoreMessages);
+  }, [firestoreMessages]);
 
   // Smart auto-scroll: only scroll on FIRST load or when USER sent a message
   useEffect(() => {
@@ -118,12 +112,12 @@ export default function ChatRoom() {
   const otherName = isCustomer ? (order.workerName || 'Pekerja') : (order.customerName || 'Customer');
   const otherPhone = isCustomer ? order.workerPhone : order.customerPhone;
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
     justSentRef.current = true;
-    sendMessage(orderId, input);
+    const text = input;
     setInput('');
-    setMessages(getMessages(orderId));
+    await sendFirestoreMessage(text, userProfile.name, userProfile.role);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -204,7 +198,7 @@ export default function ChatRoom() {
               }
 
               const { msg, showAvatar, showName } = item;
-              const isMe = msg.senderId === userProfile.uid;
+              const isMe = msg.senderId === auth.currentUser?.uid;
 
               return (
                 <motion.div
