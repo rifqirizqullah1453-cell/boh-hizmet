@@ -67,5 +67,6 @@ export const activeOrderDoc = z.object({
   customerName: z.string(),
   workerId: z.string().nullable(),
   createdAt: z.number(), // epoch ms, set by server at broadcast time
+  notes: z.string().nullable().optional(),
 });
 export type ActiveOrderDoc = z.infer<typeof activeOrderDoc>;

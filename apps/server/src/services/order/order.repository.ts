@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { eq, and, inArray } from "drizzle-orm";
-import { orders, type Order, type InsertOrder, type User, type OrderStatus } from "@boh/db";
+import { eq, and, inArray, desc } from "drizzle-orm";
+import { orders, users, type Order, type InsertOrder, type User, type OrderStatus } from "@boh/db";
 import type { Database } from "@boh/db";
 
 const ACTIVE_STATUSES: OrderStatus[] = ["ACCEPTED", "IN_PROGRESS"];
@@ -46,15 +46,39 @@ export async function listOrdersForUser(
 }
 
 /**
- * Returns the worker's current ACCEPTED or IN_PROGRESS orders.
- * Called both for the Worker App's "active job" view and as part of the
- * concurrent-order guard in acceptOrder.
+ * Returns the worker's current ACCEPTED or IN_PROGRESS orders, joined with
+ * customer name and phone so the Worker App can show contact info without a
+ * separate round-trip. Also called as the concurrent-order guard in acceptOrder.
  */
-export async function findActiveOrdersForWorker(db: Database, workerId: number): Promise<Order[]> {
-  return db.query.orders.findMany({
-    where: and(eq(orders.workerId, workerId), inArray(orders.status, ACTIVE_STATUSES)),
-    orderBy: (t, { desc }) => [desc(t.updatedAt)],
-  });
+export async function findActiveOrdersForWorker(db: Database, workerId: number) {
+  return db
+    .select({
+      id: orders.id,
+      customerId: orders.customerId,
+      workerId: orders.workerId,
+      serviceType: orders.serviceType,
+      status: orders.status,
+      pickupAddress: orders.pickupAddress,
+      pickupLat: orders.pickupLat,
+      pickupLng: orders.pickupLng,
+      destinationAddress: orders.destinationAddress,
+      destinationLat: orders.destinationLat,
+      destinationLng: orders.destinationLng,
+      price: orders.price,
+      notes: orders.notes,
+      cancelReason: orders.cancelReason,
+      cancelledBy: orders.cancelledBy,
+      acceptedAt: orders.acceptedAt,
+      completedAt: orders.completedAt,
+      createdAt: orders.createdAt,
+      updatedAt: orders.updatedAt,
+      customerName: users.name,
+      customerPhone: users.phone,
+    })
+    .from(orders)
+    .leftJoin(users, eq(orders.customerId, users.id))
+    .where(and(eq(orders.workerId, workerId), inArray(orders.status, ACTIVE_STATUSES)))
+    .orderBy(desc(orders.updatedAt));
 }
 
 /**

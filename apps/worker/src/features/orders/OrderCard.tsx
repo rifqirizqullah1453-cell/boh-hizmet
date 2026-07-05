@@ -28,6 +28,9 @@ export function OrderCard({ order, onAccept, isAccepting }: OrderCardProps) {
       <div className="order-card__content">
         <p className="order-card__customer">{order.customerName}</p>
         <p className="order-card__address">📍 {order.pickupAddress}</p>
+        {order.notes && (
+          <p className="order-card__notes">📝 {order.notes}</p>
+        )}
 
         <button
           type="button"

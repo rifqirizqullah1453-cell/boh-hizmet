@@ -21,6 +21,7 @@ export const workerRouter = router({
   me: protectedProcedure.query(({ ctx }) => {
     assertWorker(ctx.user.role);
     return {
+      name: ctx.user.name,
       isOnline: ctx.user.isOnline ?? false,
       rating: ctx.user.rating,
       totalRatings: ctx.user.totalRatings ?? 0,

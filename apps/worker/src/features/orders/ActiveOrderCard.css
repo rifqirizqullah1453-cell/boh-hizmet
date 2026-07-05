@@ -1,0 +1,309 @@
+.active-order-card {
+  background: var(--c-card);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  border: 1.5px solid var(--c-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Step indicator ──────────────────────────────── */
+.active-order-card__steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+}
+
+.active-order-card__step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  position: relative;
+}
+
+.active-order-card__step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--c-border);
+  background: white;
+  z-index: 1;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.active-order-card__step-dot.is-done {
+  border-color: var(--c-primary-700);
+  background: var(--c-primary);
+}
+
+.active-order-card__step-dot.is-current {
+  border-color: var(--c-primary-700);
+  background: var(--c-primary);
+  box-shadow: 0 0 0 3px rgba(202, 239, 69, 0.35);
+}
+
+.active-order-card__step-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--c-text-3);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.active-order-card__step-label.is-current {
+  color: var(--c-primary-700);
+  font-weight: 800;
+}
+
+.active-order-card__step-line {
+  position: absolute;
+  top: 6px;
+  left: 56%;
+  right: -44%;
+  height: 2px;
+  background: var(--c-border);
+  z-index: 0;
+}
+
+.active-order-card__step-line.is-done {
+  background: var(--c-primary-700);
+}
+
+/* ── Service header ──────────────────────────────── */
+.active-order-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.active-order-card__service-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.active-order-card__service-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.active-order-card__service-label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+
+.active-order-card__id {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+}
+
+.active-order-card__price {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--c-primary-700);
+}
+
+/* ── Customer info ───────────────────────────────── */
+.active-order-card__customer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--c-bg);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+}
+
+.active-order-card__customer-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.active-order-card__customer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.active-order-card__customer-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text);
+}
+
+.active-order-card__phone {
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.active-order-card__phone:hover {
+  text-decoration: underline;
+}
+
+/* ── Addresses ───────────────────────────────────── */
+.active-order-card__addresses {
+  background: var(--c-bg);
+  border-radius: var(--r-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.active-order-card__addr-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.active-order-card__addr-dot {
+  font-size: 10px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.active-order-card__addr-dot--pickup {
+  color: #2563eb;
+}
+
+.active-order-card__addr-dot--dest {
+  color: var(--c-danger);
+}
+
+.active-order-card__addr-text {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--c-text-2);
+  line-height: 1.4;
+}
+
+.active-order-card__copy-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  background: white;
+  font-size: 13px;
+  color: var(--c-text-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.active-order-card__addr-connector {
+  width: 1px;
+  height: 10px;
+  background: var(--c-border);
+  margin: 3px 0 3px 4px;
+}
+
+/* ── Notes ───────────────────────────────────────── */
+.active-order-card__notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+}
+
+.active-order-card__notes-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.active-order-card__notes-text {
+  font-size: 12.5px;
+  color: #92400e;
+  line-height: 1.4;
+}
+
+/* ── Action buttons ──────────────────────────────── */
+.active-order-card__btn {
+  padding: 13px;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: 13.5px;
+  font-weight: 800;
+  width: 100%;
+}
+
+.active-order-card__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.active-order-card__btn--start {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 3px 10px rgba(245, 158, 11, 0.4);
+}
+
+.active-order-card__btn--done {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+}
+
+/* ── Confirm dialog (inline) ─────────────────────── */
+.active-order-card__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: var(--r-md);
+  padding: 12px;
+}
+
+.active-order-card__confirm-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #14532d;
+  text-align: center;
+}
+
+.active-order-card__confirm-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.active-order-card__confirm-cancel {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--c-border);
+  background: white;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text-2);
+}
+
+.active-order-card__confirm-ok {
+  flex: 2;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: none;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.active-order-card__confirm-ok:disabled {
+  opacity: 0.6;
+}

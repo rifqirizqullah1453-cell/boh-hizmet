@@ -1,0 +1,174 @@
+.history-page {
+  min-height: 100dvh;
+  padding-bottom: calc(var(--nav-height) + 24px);
+}
+
+.history-page__header {
+  padding: 22px 16px 16px;
+}
+
+.history-page__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+
+/* Filter chips */
+.history-page__filters {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.history-page__filters::-webkit-scrollbar {
+  display: none;
+}
+
+.history-page__chip {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1.5px solid var(--c-border);
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-text-2);
+  white-space: nowrap;
+}
+
+.history-page__chip.is-active {
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+/* Empty + loading states */
+.history-page__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 240px;
+  text-align: center;
+  color: var(--c-text-3);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 32px;
+}
+
+.history-page__empty-icon {
+  font-size: 36px;
+}
+
+.history-page__loading {
+  text-align: center;
+  padding: 40px 16px;
+  font-size: 14px;
+  color: var(--c-text-3);
+  font-weight: 600;
+}
+
+/* Order list */
+.history-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+/* Individual history card */
+.history-card {
+  display: flex;
+  gap: 12px;
+  background: var(--c-card);
+  border-radius: var(--r-lg);
+  padding: 14px 12px;
+  box-shadow: var(--shadow-xs);
+  border: 1px solid var(--c-border);
+}
+
+.history-card__icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  background: var(--c-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.history-card__icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.history-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.history-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.history-card__service {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-text);
+}
+
+.history-card__badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.history-card__badge--completed {
+  background: #dcfce7;
+  color: #14532d;
+}
+
+.history-card__badge--cancelled {
+  background: var(--c-danger-50);
+  color: #b91c1c;
+}
+
+.history-card__address {
+  font-size: 11.5px;
+  color: var(--c-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-card__date {
+  font-size: 11px;
+  color: var(--c-text-3);
+}
+
+.history-card__price {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-primary-700);
+}

@@ -90,6 +90,7 @@ export async function createOrder(db: Database, customer: User, input: CreateOrd
       customerName: customer.name ?? "Customer",
       workerId: null,
       createdAt: Date.now(),
+      notes: input.notes ?? null,
     });
   } catch (err) {
     console.error(`[order.service] Failed to broadcast order ${orderId} to Firestore`, err);

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getAuth } from "firebase/auth";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { trpc, createTrpcSetup } from "@boh/api";
@@ -7,6 +7,9 @@ import { useAuth } from "./features/auth/useAuth";
 import { LoginPage } from "./features/auth/LoginPage";
 import { OrderProvider } from "./features/orders/OrderContext";
 import { WorkerDashboard } from "./pages/WorkerDashboard";
+import { HistoryPage } from "./pages/HistoryPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { BottomNav, type WorkerTab } from "./components/BottomNav";
 
 const { queryClient, trpcClient } = createTrpcSetup({
   serverUrl: import.meta.env.VITE_SERVER_URL ?? "http://localhost:4000",
@@ -16,6 +19,7 @@ const { queryClient, trpcClient } = createTrpcSetup({
 function WorkerApp() {
   const { user, loading } = useAuth();
   const register = trpc.auth.register.useMutation();
+  const [tab, setTab] = useState<WorkerTab>("home");
 
   useEffect(() => {
     if (!user) return;
@@ -39,7 +43,10 @@ function WorkerApp() {
 
   return (
     <OrderProvider>
-      <WorkerDashboard />
+      {tab === "home" && <WorkerDashboard />}
+      {tab === "history" && <HistoryPage />}
+      {tab === "profile" && <ProfilePage />}
+      <BottomNav active={tab} onChange={setTab} />
     </OrderProvider>
   );
 }
