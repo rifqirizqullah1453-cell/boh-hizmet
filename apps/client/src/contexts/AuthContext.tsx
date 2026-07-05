@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
+  FacebookAuthProvider,
   updateProfile as fbUpdateProfile,
   signOut as fbSignOut,
   onAuthStateChanged,
@@ -21,6 +22,7 @@ interface AuthContextType {
   isCustomer: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signInWithFacebook: () => Promise<void>;
   signUp: (email: string, password: string, name: string, phone: string, role: UserRole, extra?: Partial<UserProfile>) => Promise<void>;
   signOut: () => void;
   loginAsGuest: () => void;
@@ -139,6 +141,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signInWithPopup(auth, new GoogleAuthProvider());
   }, []);
 
+  const signInWithFacebook = useCallback(async () => {
+    await signInWithPopup(auth, new FacebookAuthProvider());
+  }, []);
+
   const signUp = useCallback(async (email: string, password: string, name: string, phone: string, role: UserRole) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     if (name.trim()) await fbUpdateProfile(cred.user, { displayName: name.trim() });
@@ -220,6 +226,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isCustomer,
       signIn,
       signInWithGoogle,
+      signInWithFacebook,
       signUp,
       signOut,
       loginAsGuest,
