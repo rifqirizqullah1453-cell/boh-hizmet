@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { MapPin, Hand } from "lucide-react";
+import { MapPin, Hand, Clock } from "lucide-react";
 import type { ActiveOrderDoc } from "@boh/contracts";
 
 const SERVICE_META: Record<ActiveOrderDoc["serviceType"], { label: string; icon: string }> = {
@@ -8,6 +8,15 @@ const SERVICE_META: Record<ActiveOrderDoc["serviceType"], { label: string; icon:
   cleaning: { label: "Kebersihan", icon: "🧹" },
   moving: { label: "Angkut Barang", icon: "🚛" },
 };
+
+function timeAgo(ms: number) {
+  const diff = Date.now() - ms;
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return "baru saja";
+  if (min < 60) return `${min} mnt lalu`;
+  const hr = Math.floor(min / 60);
+  return `${hr} jam lalu`;
+}
 
 interface OrderCardProps {
   order: ActiveOrderDoc;
@@ -27,6 +36,7 @@ export function OrderCard({ order, onAccept, isAccepting }: OrderCardProps) {
       transition={{ type: "spring", stiffness: 300, damping: 24 }}
       style={{ borderLeft: "3px solid var(--cyan)", boxShadow: "var(--shadow-sm)" }}
     >
+      {/* Top row */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">{meta.icon}</span>
@@ -34,25 +44,41 @@ export function OrderCard({ order, onAccept, isAccepting }: OrderCardProps) {
             {meta.label}
           </span>
         </div>
-        <span className="text-base font-black" style={{ color: "var(--cyan)" }}>
-          ₺{order.price.toLocaleString("tr-TR")}
-        </span>
+        <div className="flex items-center gap-2">
+          {order.createdAt != null && (
+            <div className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+              <Clock className="w-3 h-3" />
+              <span className="text-[11px] font-semibold">{timeAgo(order.createdAt)}</span>
+            </div>
+          )}
+          <span className="text-base font-black" style={{ color: "var(--cyan)" }}>
+            ₺{order.price.toLocaleString("tr-TR")}
+          </span>
+        </div>
       </div>
 
-      <div
-        className="flex items-start gap-2 text-sm font-medium mb-3"
-        style={{ color: "var(--text-secondary)" }}
-      >
+      {/* Pickup */}
+      <div className="flex items-start gap-2 text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
         <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "var(--cyan)" }} />
         <span className="line-clamp-2">{order.pickupAddress}</span>
       </div>
 
+      {/* Destination (if available) */}
+      {order.destinationAddress && (
+        <div className="flex items-start gap-2 text-sm font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+          <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#8B5CF6" }} />
+          <span className="line-clamp-1">{order.destinationAddress}</span>
+        </div>
+      )}
+
+      {/* Notes */}
       {order.notes && (
         <p className="text-xs mb-3 font-medium" style={{ color: "var(--text-muted)" }}>
           📝 {order.notes}
         </p>
       )}
 
+      {/* Customer badge */}
       <div className="flex items-center gap-2 mb-4">
         <span
           className="text-[11px] px-3 py-1 rounded-lg font-bold"

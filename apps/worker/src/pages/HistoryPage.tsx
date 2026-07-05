@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@boh/api";
-import { CheckCircle, XCircle, Package } from "lucide-react";
+import { CheckCircle, XCircle, Package, MapPin, ChevronDown } from "lucide-react";
 
 type HistoryFilter = "all" | "COMPLETED" | "CANCELLED";
 
@@ -30,6 +30,7 @@ const FILTERS: { id: HistoryFilter; label: string }[] = [
 
 export function HistoryPage() {
   const [filter, setFilter] = useState<HistoryFilter>("all");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const { data, isLoading } = trpc.order.listMine.useQuery(
     { limit: 50 },
@@ -144,65 +145,139 @@ export function HistoryPage() {
             {visibleItems.map((order, i) => {
               const meta = SERVICE_META[order.serviceType] ?? { label: order.serviceType, icon: "📋" };
               const isCompleted = order.status === "COMPLETED";
+              const isExpanded = expandedId === order.id;
 
               return (
                 <motion.div
                   key={order.id}
-                  className="p-4 rounded-3xl card-bg border border-dark flex items-start gap-4"
+                  className="rounded-3xl card-bg border border-dark overflow-hidden"
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.04, type: "spring", stiffness: 300 }}
                   style={{ boxShadow: "var(--shadow-sm)" }}
                 >
-                  {/* Icon */}
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{
-                      background: isCompleted
-                        ? "linear-gradient(135deg, #34D399, #10B981)"
-                        : "rgba(239,68,68,0.08)",
-                    }}
+                  {/* Summary row — tap to expand */}
+                  <button
+                    type="button"
+                    className="w-full p-4 flex items-start gap-4 text-left"
+                    onClick={() => setExpandedId(isExpanded ? null : order.id)}
                   >
-                    {isCompleted ? (
-                      <CheckCircle className="w-5 h-5 text-white" />
-                    ) : (
-                      <XCircle className="w-5 h-5" style={{ color: "#EF4444" }} />
-                    )}
-                  </div>
-
-                  {/* Body */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-bold text-sm" style={{ color: "var(--text)" }}>
-                        {meta.icon} {meta.label}
-                      </p>
-                      <span
-                        className="text-[10px] font-black px-2.5 py-0.5 rounded-lg"
-                        style={{
-                          background: isCompleted ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.08)",
-                          color: isCompleted ? "#10B981" : "#EF4444",
-                        }}
-                      >
-                        {isCompleted ? "Selesai" : "Dibatalkan"}
-                      </span>
-                    </div>
-                    <p
-                      className="text-xs font-medium line-clamp-1 mb-1.5"
-                      style={{ color: "var(--text-secondary)" }}
+                    {/* Icon */}
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: isCompleted
+                          ? "linear-gradient(135deg, #34D399, #10B981)"
+                          : "rgba(239,68,68,0.08)",
+                      }}
                     >
-                      {order.pickupAddress}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
-                        {formatDate(order.createdAt)}
-                      </p>
-                      {isCompleted && (
-                        <p className="text-sm font-black" style={{ color: "#10B981" }}>
-                          +₺{order.price.toLocaleString("tr-TR")}
-                        </p>
+                      {isCompleted ? (
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      ) : (
+                        <XCircle className="w-5 h-5" style={{ color: "#EF4444" }} />
                       )}
                     </div>
-                  </div>
+
+                    {/* Body */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-bold text-sm" style={{ color: "var(--text)" }}>
+                          {meta.icon} {meta.label}
+                        </p>
+                        <span
+                          className="text-[10px] font-black px-2.5 py-0.5 rounded-lg"
+                          style={{
+                            background: isCompleted ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.08)",
+                            color: isCompleted ? "#10B981" : "#EF4444",
+                          }}
+                        >
+                          {isCompleted ? "Selesai" : "Dibatalkan"}
+                        </span>
+                      </div>
+                      <p
+                        className="text-xs font-medium line-clamp-1 mb-1.5"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {order.pickupAddress}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                          {formatDate(order.createdAt)}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          {isCompleted && (
+                            <p className="text-sm font-black" style={{ color: "#10B981" }}>
+                              +₺{order.price.toLocaleString("tr-TR")}
+                            </p>
+                          )}
+                          <motion.div
+                            animate={{ rotate: isExpanded ? 180 : 0 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                          >
+                            <ChevronDown className="w-4 h-4" style={{ color: "var(--text-muted)" }} />
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Expandable detail */}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                        className="overflow-hidden"
+                      >
+                        <div
+                          className="px-4 pb-4 pt-0 space-y-2.5"
+                          style={{ borderTop: "1px solid var(--border-light)" }}
+                        >
+                          <div className="pt-3 space-y-2">
+                            <div className="flex items-start gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0" style={{ background: "var(--cyan)" }} />
+                              <div>
+                                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Pickup</p>
+                                <p className="text-xs font-medium" style={{ color: "var(--text)" }}>{order.pickupAddress}</p>
+                              </div>
+                            </div>
+                            {order.destinationAddress && (
+                              <div className="flex items-start gap-2">
+                                <div className="w-2.5 h-2.5 rounded mt-1 flex-shrink-0" style={{ background: "#8B5CF6" }} />
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Tujuan</p>
+                                  <p className="text-xs font-medium" style={{ color: "var(--text)" }}>{order.destinationAddress}</p>
+                                </div>
+                              </div>
+                            )}
+                            {order.notes && (
+                              <div
+                                className="flex items-start gap-2 p-2.5 rounded-xl"
+                                style={{ background: "rgba(245,158,11,0.07)" }}
+                              >
+                                <span className="text-xs flex-shrink-0">📝</span>
+                                <p className="text-xs font-medium" style={{ color: "#92400E" }}>{order.notes}</p>
+                              </div>
+                            )}
+                            {order.customerName && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>Customer:</span>
+                                <span className="text-xs font-semibold" style={{ color: "var(--text)" }}>{order.customerName}</span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-3.5 h-3.5" style={{ color: "var(--text-muted)" }} />
+                              <span className="text-xs font-bold" style={{ color: "var(--text-muted)" }}>
+                                Order #{order.id.split("-").slice(-2).join("-").toUpperCase()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.div>
               );
             })}

@@ -6,8 +6,10 @@ import "./lib/firestoreClient";
 import { useAuth } from "./features/auth/useAuth";
 import { LoginPage } from "./features/auth/LoginPage";
 import { OrderProvider } from "./features/orders/OrderContext";
+import { OrderAlert } from "./components/OrderAlert";
 import { WorkerDashboard } from "./pages/WorkerDashboard";
 import { HistoryPage } from "./pages/HistoryPage";
+import { EarningsPage } from "./pages/EarningsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { BottomNav, type WorkerTab } from "./components/BottomNav";
 
@@ -24,9 +26,6 @@ function WorkerApp() {
   useEffect(() => {
     if (!user) return;
     const name = user.displayName ?? user.email?.split("@")[0] ?? "Pekerja";
-    // Worker app always registers with role: "worker". The server only applies
-    // the role if the MySQL row is still at the "customer" default (i.e. this
-    // is the user's very first login), so repeated calls are safe.
     register.mutate({ name, role: "worker" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
@@ -49,8 +48,10 @@ function WorkerApp() {
 
   return (
     <OrderProvider>
+      <OrderAlert />
       {tab === "home" && <WorkerDashboard />}
       {tab === "history" && <HistoryPage />}
+      {tab === "earnings" && <EarningsPage />}
       {tab === "profile" && <ProfilePage />}
       <BottomNav active={tab} onChange={setTab} />
     </OrderProvider>

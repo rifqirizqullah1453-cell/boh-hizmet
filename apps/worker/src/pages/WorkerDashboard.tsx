@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Power, Bell, CheckCircle, Wallet, Package, Star } from "lucide-react";
+import { Power, Bell, CheckCircle, Wallet, Package, Star } from "lucide-react";
 import { useOrders } from "../features/orders/OrderContext";
 import { useAuth } from "../features/auth/useAuth";
 import { trpc, TRPCClientError } from "@boh/api";
 import { OrderCard } from "../features/orders/OrderCard";
 import { ActiveOrderCard } from "../features/orders/ActiveOrderCard";
+import { doc, setDoc } from "firebase/firestore";
+import { firestore } from "../lib/firestoreClient";
 
 const easeOut = [0.16, 1, 0.3, 1] as const;
 
@@ -35,6 +37,8 @@ export function WorkerDashboard() {
   const [feedback, setFeedback] = useState<{ kind: "error" | "info"; text: string } | null>(null);
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("all");
 
+  const gpsWatchRef = useRef<number | null>(null);
+
   const acceptOrder = trpc.order.accept.useMutation();
   const updateStatus = trpc.order.updateStatus.useMutation();
   const setOnlineMut = trpc.worker.setOnline.useMutation();
@@ -63,6 +67,37 @@ export function WorkerDashboard() {
   useEffect(() => {
     if (workerMe?.isOnline !== undefined) setIsOnline(workerMe.isOnline);
   }, [workerMe?.isOnline]);
+
+  // GPS tracking: watch position while online, stop when offline/unmounted
+  useEffect(() => {
+    if (!isOnline || !user?.uid) {
+      if (gpsWatchRef.current != null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+      return;
+    }
+    if (!("geolocation" in navigator)) return;
+
+    gpsWatchRef.current = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        void setDoc(
+          doc(firestore, "worker_locations", user.uid),
+          { lat: coords.latitude, lng: coords.longitude, updatedAt: Date.now() },
+          { merge: true }
+        );
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 }
+    );
+
+    return () => {
+      if (gpsWatchRef.current != null) {
+        navigator.geolocation.clearWatch(gpsWatchRef.current);
+        gpsWatchRef.current = null;
+      }
+    };
+  }, [isOnline, user?.uid]);
 
   const handleToggleOnline = () => {
     unlockAudio();
@@ -309,6 +344,7 @@ export function WorkerDashboard() {
                 <ActiveOrderCard
                   key={order.id}
                   order={order}
+                  workerName={displayName}
                   onUpdateStatus={handleUpdateStatus}
                   isUpdating={updatingId === order.id}
                 />
