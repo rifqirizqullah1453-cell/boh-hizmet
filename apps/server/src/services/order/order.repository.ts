@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray, desc, getTableColumns } from "drizzle-orm";
+import { alias } from "drizzle-orm/mysql-core";
 import { orders, users, type Order, type InsertOrder, type User, type OrderStatus } from "@boh/db";
 import type { Database } from "@boh/db";
 
@@ -23,22 +24,34 @@ export async function findOrderById(db: Database, orderId: string): Promise<Orde
  * differing digit lengths) — fine at this scale, revisit if the table grows
  * past a size where offset pagination starts costing real scan time.
  */
+const workerUser = alias(users, "w");
+const customerUser = alias(users, "c");
+
 export async function listOrdersForUser(
   db: Database,
   user: User,
   opts: { limit: number; cursor?: string; status?: OrderStatus }
-): Promise<{ items: Order[]; nextCursor?: string }> {
+): Promise<{ items: (Order & { workerName: string | null; workerPhone: string | null; customerName: string | null; customerPhone: string | null })[]; nextCursor?: string }> {
   const offset = opts.cursor ? Number(opts.cursor) : 0;
   const ownerClause =
     user.role === "worker" ? eq(orders.workerId, user.id) : eq(orders.customerId, user.id);
   const where = opts.status ? and(ownerClause, eq(orders.status, opts.status)) : ownerClause;
 
-  const rows = await db.query.orders.findMany({
-    where,
-    orderBy: (table, { desc }) => [desc(table.createdAt)],
-    limit: opts.limit + 1,
-    offset,
-  });
+  const rows = await db
+    .select({
+      ...getTableColumns(orders),
+      workerName: workerUser.name,
+      workerPhone: workerUser.phone,
+      customerName: customerUser.name,
+      customerPhone: customerUser.phone,
+    })
+    .from(orders)
+    .leftJoin(workerUser, eq(orders.workerId, workerUser.id))
+    .leftJoin(customerUser, eq(orders.customerId, customerUser.id))
+    .where(where)
+    .orderBy(desc(orders.createdAt))
+    .limit(opts.limit + 1)
+    .offset(offset);
 
   const hasMore = rows.length > opts.limit;
   const items = hasMore ? rows.slice(0, opts.limit) : rows;

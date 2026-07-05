@@ -12,7 +12,7 @@ type FilterTab = 'all' | 'active' | 'completed' | 'cancelled';
 
 export default function OrderHistory() {
   const navigate = useNavigate();
-  const { userProfile, isCustomer, isWorker } = useAuth();
+  const { isCustomer, isWorker } = useAuth();
   const { orders, createOrder } = useOrders();
   const { toast } = useToast();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -21,7 +21,7 @@ export default function OrderHistory() {
   const [showFilters, setShowFilters] = useState(false);
   const [reorderingId, setReorderId] = useState<string | null>(null);
 
-  const myOrders = useMemo(() => orders.filter(o => { if (isCustomer) return o.customerId === userProfile?.uid; if (isWorker) return o.workerId === userProfile?.uid; return true; }).sort((a, b) => b.createdAt - a.createdAt), [orders, userProfile, isCustomer, isWorker]);
+  const myOrders = useMemo(() => [...orders].sort((a, b) => b.createdAt - a.createdAt), [orders]);
 
   const filtered = useMemo(() => {
     let result = myOrders;
