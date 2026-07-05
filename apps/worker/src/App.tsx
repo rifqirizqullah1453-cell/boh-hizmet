@@ -7,6 +7,7 @@ import { useAuth } from "./features/auth/useAuth";
 import { LoginPage } from "./features/auth/LoginPage";
 import { OrderProvider } from "./features/orders/OrderContext";
 import { OrderAlert } from "./components/OrderAlert";
+import { useFcmToken } from "./features/notifications/useFcmToken";
 import { WorkerDashboard } from "./pages/WorkerDashboard";
 import { HistoryPage } from "./pages/HistoryPage";
 import { EarningsPage } from "./pages/EarningsPage";
@@ -22,6 +23,8 @@ function WorkerApp() {
   const { user, loading } = useAuth();
   const register = trpc.auth.register.useMutation();
   const [tab, setTab] = useState<WorkerTab>("home");
+
+  useFcmToken(!!user);
 
   useEffect(() => {
     if (!user) return;

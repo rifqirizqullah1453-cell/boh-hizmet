@@ -42,6 +42,16 @@ export const authRouter = router({
     return { ok: true };
   }),
 
+  saveFcmToken: protectedProcedure
+    .input(z.object({ token: z.string().min(1).max(512) }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db
+        .update(users)
+        .set({ fcmToken: input.token, updatedAt: new Date() })
+        .where(eq(users.id, ctx.user.id));
+      return { ok: true };
+    }),
+
   register: protectedProcedure
     .input(
       z.object({

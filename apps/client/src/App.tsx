@@ -10,6 +10,7 @@ import { useSmoothScroll } from './components/SmoothScroll';
 import SplashScreen from './components/SplashScreen';
 import { useSoundAlert } from './hooks/useSoundAlert';
 import { useOrders } from './contexts/OrderContext';
+import { useFcmToken } from './hooks/useFcmToken';
 
 // Direct imports (no lazy) for reliability on mobile Safari
 import Home from './pages/Home';
@@ -65,7 +66,8 @@ function AppInner() {
   const { orders } = useOrders();
   const { alertNewOrder } = useSoundAlert();
   const prevOrderCount = useRef(0);
-  const { isWorker } = useAuth();
+  const { isWorker, userProfile } = useAuth();
+  useFcmToken(!!userProfile && !userProfile.uid.startsWith('guest-'));
 
   useEffect(() => {
     const handler = (e: ErrorEvent) => {

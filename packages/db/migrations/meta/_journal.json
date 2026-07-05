@@ -30,5 +30,19 @@
       "tag": "0003_cleaning_pricing",
       "breakpoints": true
     }
+    ,{
+      "idx": 4,
+      "version": "5",
+      "when": 1783400000000,
+      "tag": "0004_moving_pricing",
+      "breakpoints": true
+    }
+    ,{
+      "idx": 5,
+      "version": "5",
+      "when": 1783500000000,
+      "tag": "0005_fcm_token",
+      "breakpoints": true
+    }
   ]
 }

@@ -11,6 +11,7 @@ export const users = mysqlTable("users", {
   rating: decimal("rating", { precision: 3, scale: 1 }).default("5.0"),
   totalRatings: int("totalRatings").default(0),
   isOnline: boolean("isOnline").default(false),
+  fcmToken: varchar("fcmToken", { length: 512 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });

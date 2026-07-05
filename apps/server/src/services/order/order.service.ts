@@ -42,6 +42,8 @@ import {
   syncOrderState,
   retireActiveOrder,
 } from "../firestore/activeOrders.service";
+import { sendPushToToken, sendPushToTokens } from "../fcm/fcm.service";
+import { getOnlineWorkerFcmTokens, getUserFcmToken } from "../worker/worker.repository";
 
 export function estimateOrderPrice(input: EstimatePriceInput) {
   const distanceKm = calculateDistanceKm(
@@ -99,6 +101,20 @@ export async function createOrder(db: Database, customer: User, input: CreateOrd
     console.error(`[order.service] Failed to broadcast order ${orderId} to Firestore`, err);
   }
 
+  // FCM push to all online workers that have a saved token — fire and forget.
+  void (async () => {
+    try {
+      const tokens = await getOnlineWorkerFcmTokens(db);
+      const serviceLabel = input.serviceType.charAt(0).toUpperCase() + input.serviceType.slice(1);
+      await sendPushToTokens(tokens, {
+        title: `🛵 Pesanan Baru — ${serviceLabel}`,
+        body: `${input.pickupAddress} · ₺${price.toLocaleString("tr-TR")}`,
+      }, { orderId, type: "new_order" });
+    } catch (err) {
+      console.error(`[order.service] FCM notify workers failed for order ${orderId}`, err);
+    }
+  })();
+
   return orderId;
 }
 
@@ -133,6 +149,22 @@ export async function acceptOrder(db: Database, worker: User, orderId: string) {
   } catch (err) {
     console.error(`[order.service] Failed to sync ACCEPTED state for ${orderId} to Firestore`, err);
   }
+
+  // Notify customer that their order was accepted — fire and forget.
+  void (async () => {
+    try {
+      const order = await findOrderById(db, orderId);
+      const token = await getUserFcmToken(db, order.customerId);
+      if (token) {
+        await sendPushToToken(token, {
+          title: "✅ Pesanan Diterima!",
+          body: `Pekerja ${worker.name ?? "kami"} sedang menuju ke lokasi Anda.`,
+        }, { orderId, type: "order_accepted" });
+      }
+    } catch (err) {
+      console.error(`[order.service] FCM notify customer failed for order ${orderId}`, err);
+    }
+  })();
 
   return updated;
 }
