@@ -33,8 +33,14 @@ function WorkerApp() {
 
   if (loading) {
     return (
-      <div className="app-loading">
-        <span>Memuat...</span>
+      <div className="min-h-screen flex items-center justify-center gradient-hero">
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="w-10 h-10 border-[3px] rounded-full"
+            style={{ borderColor: "rgba(255,255,255,0.3)", borderTopColor: "white", animation: "spin 1s linear infinite" }}
+          />
+          <span className="text-white text-sm font-semibold">Memuat...</span>
+        </div>
       </div>
     );
   }
