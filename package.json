@@ -16,6 +16,7 @@
     "emulators": "npx firebase-tools@13 emulators:start --only auth,firestore"
   },
   "dependencies": {
-    "drizzle-orm": "^0.36.4"
+    "drizzle-orm": "^0.36.4",
+    "tsx": "^4.19.0"
   }
 }
