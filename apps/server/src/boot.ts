@@ -8,6 +8,7 @@ import { getDb } from "@boh/db";
 import { sql } from "drizzle-orm";
 import { ensureCleaningSchema } from "./services/pricing/cleaning.schema-init";
 import { ensureMovingSchema } from "./services/pricing/moving.schema-init";
+import { ensureCoreSchema } from "./core.schema-init";
 
 const app = new Hono();
 
@@ -121,6 +122,11 @@ serve({ fetch: app.fetch, port }, async () => {
   console.log(`[server] listening on http://localhost:${port}`);
   const databaseUrl = process.env.DATABASE_URL;
   if (databaseUrl) {
+    try {
+      await ensureCoreSchema(getDb(databaseUrl));
+    } catch (err) {
+      console.error("[core] Schema init failed:", err);
+    }
     try {
       await ensureCleaningSchema(getDb(databaseUrl));
     } catch (err) {
