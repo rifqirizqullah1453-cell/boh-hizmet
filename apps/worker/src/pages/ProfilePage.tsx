@@ -51,7 +51,7 @@ export function ProfilePage() {
 
   const openEdit = () => {
     setEditName(workerMe?.name ?? displayName);
-    setEditPhone("");
+    setEditPhone(workerMe?.phone ?? "");
     setSaveError(null);
     setSaveSuccess(false);
     setEditOpen(true);
@@ -125,6 +125,11 @@ export function ProfilePage() {
           {user?.email && (
             <p className="text-xs font-medium mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>
               {user.email}
+            </p>
+          )}
+          {workerMe?.phone && (
+            <p className="text-xs font-medium mt-0.5" style={{ color: "rgba(255,255,255,0.65)" }}>
+              {workerMe.phone}
             </p>
           )}
 

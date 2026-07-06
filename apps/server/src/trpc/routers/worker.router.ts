@@ -22,6 +22,7 @@ export const workerRouter = router({
     assertWorker(ctx.user.role);
     return {
       name: ctx.user.name,
+      phone: ctx.user.phone ?? null,
       isOnline: ctx.user.isOnline ?? false,
       rating: ctx.user.rating,
       totalRatings: ctx.user.totalRatings ?? 0,
