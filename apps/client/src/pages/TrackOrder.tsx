@@ -57,6 +57,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
 function useResolvedAddress(rawAddress: string, lat: number, lng: number): string {
   const [resolved, setResolved] = useState(rawAddress);
   useEffect(() => {
+    if (!rawAddress) { setResolved(''); return; }
     if (!isRawCoord(rawAddress)) { setResolved(rawAddress); return; }
     reverseGeocode(lat, lng).then(setResolved);
   }, [rawAddress, lat, lng]);
@@ -149,6 +150,11 @@ export default function TrackOrder() {
     }
   }, [order?.status, order?.customerRating, order?.workerRating]);
 
+  // Must be called before any early return to follow Rules of Hooks.
+  // useResolvedAddress handles null/empty rawAddress gracefully.
+  const resolvedPickup = useResolvedAddress(order?.pickupAddress ?? '', order?.pickupLat ?? 0, order?.pickupLng ?? 0);
+  const resolvedDestination = useResolvedAddress(order?.destinationAddress ?? '', order?.destinationLat ?? 0, order?.destinationLng ?? 0);
+
   if (!order) return <div className="flex h-screen items-center justify-center" style={{ background: 'var(--bg)' }}><motion.div className="w-10 h-10 border-[3px] rounded-full" style={{ borderColor: 'var(--border)', borderTopColor: 'var(--sky)' }} animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }} /></div>;
 
   const handleRate = (r: number, review: string) => { rateOrder(order.id, r, review, isCustomer); toast('Review submitted!', 'success'); };
@@ -202,12 +208,6 @@ export default function TrackOrder() {
   const curStep = (workerNearPickup && order.status === 'worker_found') ? 4 : baseStep;
   const effectiveStatus = workerNearPickup && order.status === 'worker_found' ? 'arrived' : order.status;
   const statusInfo = statusMessages[effectiveStatus] || statusMessages.searching_worker;
-
-  // Resolved addresses: if DB stored raw coordinates, reverse geocode them on display
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const resolvedPickup = useResolvedAddress(order.pickupAddress, order.pickupLat, order.pickupLng);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const resolvedDestination = useResolvedAddress(order.destinationAddress, order.destinationLat, order.destinationLng);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
