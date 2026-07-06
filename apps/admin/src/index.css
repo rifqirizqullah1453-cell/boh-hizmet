@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --cyan: #2BC5D4;
+    --cyan-light: #4DD4E0;
+    --cyan-dark: #1BA8B5;
+    --cyan-glow: rgba(43, 197, 212, 0.18);
+    --cyan-soft: rgba(43, 197, 212, 0.08);
+
+    --bg: #F4F6F8;
+    --bg-card: #FFFFFF;
+    --sidebar: #0C1E22;
+    --sidebar-hover: rgba(43, 197, 212, 0.1);
+    --sidebar-active: rgba(43, 197, 212, 0.15);
+
+    --text: #0C1E22;
+    --text-secondary: #4A6670;
+    --text-muted: #8FA5AA;
+    --text-inverse: #FFFFFF;
+
+    --border: #E2EAEC;
+    --shadow-sm: 0 1px 4px rgba(12, 30, 34, 0.06);
+    --shadow-md: 0 4px 16px rgba(12, 30, 34, 0.08);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #CBD5D8; border-radius: 4px; }
+}
+
+@layer utilities {
+  .gradient-cyan { background: linear-gradient(135deg, #4DD4E0 0%, #2BC5D4 50%, #1BA8B5 100%); }
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
