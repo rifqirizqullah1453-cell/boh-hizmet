@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getAuth, signOut } from "firebase/auth";
+import { getMessaging, getToken } from "firebase/messaging";
+import { getApp } from "firebase/app";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@boh/api";
 import { useAuth } from "../features/auth/useAuth";
-import { Star, LogOut, CheckCircle, Wallet, TrendingUp, Edit2, X, Save } from "lucide-react";
+import { Star, LogOut, CheckCircle, Wallet, TrendingUp, Edit2, X, Save, Bell, BellOff } from "lucide-react";
+
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined;
 
 function isSameDay(a: Date, b: Date) {
   return (
@@ -20,6 +24,8 @@ export function ProfilePage() {
   const [editPhone, setEditPhone] = useState("");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'loading' | 'unsupported'>('unsupported');
+  const saveFcmTokenMutation = trpc.auth.saveFcmToken.useMutation();
 
   const { data: workerMe, refetch: refetchMe } = trpc.worker.me.useQuery(undefined, {
     retry: false,
@@ -32,6 +38,26 @@ export function ProfilePage() {
   );
 
   const updateProfile = trpc.auth.updateProfile.useMutation();
+
+  useEffect(() => {
+    if ('Notification' in window) setNotifPermission(Notification.permission);
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    if (!('Notification' in window) || !VAPID_KEY) return;
+    setNotifPermission('loading');
+    try {
+      // Must be called from a user tap — iOS requires this
+      const permission = await Notification.requestPermission();
+      setNotifPermission(permission);
+      if (permission !== 'granted') return;
+      const reg = await navigator.serviceWorker.ready;
+      const token = await getToken(getMessaging(getApp()), { vapidKey: VAPID_KEY, serviceWorkerRegistration: reg });
+      if (token) await saveFcmTokenMutation.mutateAsync({ token });
+    } catch {
+      setNotifPermission(Notification.permission);
+    }
+  };
 
   const today = new Date();
   const todayOrders = (completedData?.items ?? []).filter((o) =>
@@ -226,6 +252,36 @@ export function ProfilePage() {
           <Edit2 className="w-4 h-4" />
           Edit Profil
         </motion.button>
+
+        {/* Notification toggle */}
+        {notifPermission !== 'unsupported' && (
+          <motion.button
+            type="button"
+            onClick={notifPermission === 'granted' ? undefined : handleEnableNotifications}
+            disabled={notifPermission === 'loading' || notifPermission === 'granted'}
+            whileHover={notifPermission !== 'granted' ? { scale: 1.02 } : {}}
+            whileTap={notifPermission !== 'granted' ? { scale: 0.97 } : {}}
+            className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm"
+            style={notifPermission === 'granted'
+              ? { background: "rgba(16,185,129,0.08)", color: "#10B981", border: "1.5px solid rgba(16,185,129,0.2)" }
+              : notifPermission === 'denied'
+              ? { background: "rgba(239,68,68,0.06)", color: "#DC2626", border: "1.5px solid rgba(239,68,68,0.15)" }
+              : { background: "rgba(43,197,212,0.08)", color: "var(--cyan)", border: "1.5px solid rgba(43,197,212,0.2)" }}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22 }}
+          >
+            {notifPermission === 'granted' ? (
+              <><Bell className="w-4 h-4" /> Notifikasi Aktif</>
+            ) : notifPermission === 'denied' ? (
+              <><BellOff className="w-4 h-4" /> Notifikasi Diblokir — Aktifkan di Settings</>
+            ) : notifPermission === 'loading' ? (
+              <motion.div className="w-4 h-4 border-[2.5px] border-current/40 rounded-full border-t-current" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
+            ) : (
+              <><Bell className="w-4 h-4" /> Aktifkan Notifikasi</>
+            )}
+          </motion.button>
+        )}
 
         {/* App info */}
         <motion.div
