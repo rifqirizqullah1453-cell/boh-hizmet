@@ -23,7 +23,45 @@ const statusMessages: Record<string, { title: string; sub: string }> = {
   cancelled: { title: 'Cancelled', sub: 'Order has been cancelled' },
 };
 const stepLabels = ['Order', 'Accepted', 'Travel', 'Arrive', 'Done'];
-const stepMap: Record<string, number> = { searching_worker: 1, worker_found: 2, on_the_way: 3, arrived: 4, in_progress: 4, completed: 5, cancelled: 0 };
+// in_progress → 5: worker has started service = "Arrive" is already done (checkmark), heading to Done
+const stepMap: Record<string, number> = { searching_worker: 1, worker_found: 2, on_the_way: 3, arrived: 4, in_progress: 5, completed: 5, cancelled: 0 };
+
+// Haversine distance in meters between two GPS coordinates
+function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Detect if a string is raw coordinates like "41.62771, 32.34173"
+function isRawCoord(addr: string): boolean {
+  return /^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(addr.trim());
+}
+
+async function reverseGeocode(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+      { headers: { 'Accept-Language': 'tr,id,en' } }
+    );
+    const data = await res.json();
+    return data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  } catch {
+    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  }
+}
+
+// Resolve address: if it's raw coords, reverse geocode it; otherwise return as-is
+function useResolvedAddress(rawAddress: string, lat: number, lng: number): string {
+  const [resolved, setResolved] = useState(rawAddress);
+  useEffect(() => {
+    if (!isRawCoord(rawAddress)) { setResolved(rawAddress); return; }
+    reverseGeocode(lat, lng).then(setResolved);
+  }, [rawAddress, lat, lng]);
+  return resolved;
+}
 
 const PHOTOS_KEY = (orderId: string) => `boh_photos_${orderId}`;
 
@@ -47,6 +85,7 @@ export default function TrackOrder() {
   const { toast } = useToast();
   const [order, setOrder] = useState<typeof orders[0] | null>(null);
   const [liveWorkerLocation, setLiveWorkerLocation] = useState<{ lat: number; lng: number; timestamp: number } | null>(null);
+  const [workerNearPickup, setWorkerNearPickup] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
@@ -84,6 +123,13 @@ export default function TrackOrder() {
       locationUnsub?.();
     };
   }, [orderId]);
+
+  // Detect when worker is within 100m of the pickup location → advance "Arrive" step
+  useEffect(() => {
+    if (!liveWorkerLocation || !order) return;
+    const dist = distanceMeters(liveWorkerLocation.lat, liveWorkerLocation.lng, order.pickupLat, order.pickupLng);
+    setWorkerNearPickup(dist < 100);
+  }, [liveWorkerLocation, order?.pickupLat, order?.pickupLng]);
 
   useEffect(() => {
     if (!order || order.status === 'completed' || order.status === 'cancelled') return;
@@ -150,8 +196,18 @@ export default function TrackOrder() {
   };
 
   const st = STATUS_LABELS[order.status];
-  const curStep = stepMap[order.status] || 1;
-  const statusInfo = statusMessages[order.status] || statusMessages.searching_worker;
+  // If worker is physically near the pickup location while status is still "worker_found",
+  // show step 4 (Arrive) proactively instead of step 2 (Accepted) / step 3 (Travel).
+  const baseStep = stepMap[order.status] || 1;
+  const curStep = (workerNearPickup && order.status === 'worker_found') ? 4 : baseStep;
+  const effectiveStatus = workerNearPickup && order.status === 'worker_found' ? 'arrived' : order.status;
+  const statusInfo = statusMessages[effectiveStatus] || statusMessages.searching_worker;
+
+  // Resolved addresses: if DB stored raw coordinates, reverse geocode them on display
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const resolvedPickup = useResolvedAddress(order.pickupAddress, order.pickupLat, order.pickupLng);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const resolvedDestination = useResolvedAddress(order.destinationAddress, order.destinationLat, order.destinationLng);
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
@@ -192,8 +248,8 @@ export default function TrackOrder() {
               <div className="flex items-center justify-between mb-2 relative">
                 {[1,2,3,4,5].map(s => (
                   <div key={s} className="flex flex-col items-center z-10 w-10">
-                    <motion.div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black" animate={s === curStep ? { scale: [1,1.15,1] } : {}} transition={{ duration: 1.5, repeat: Infinity }} style={{ background: s <= curStep ? 'linear-gradient(135deg, #4DD4E0, #2BC5D4)' : 'var(--bg)', color: s <= curStep ? 'white' : '#CBD5E1', border: s === curStep ? '2px solid var(--sky)' : '2px solid var(--border)' }}>
-                      {s < curStep ? <CheckCircle className="w-4 h-4" /> : s}
+                    <motion.div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black" animate={s === curStep && order.status !== 'completed' ? { scale: [1,1.15,1] } : {}} transition={{ duration: 1.5, repeat: Infinity }} style={{ background: s <= curStep ? 'linear-gradient(135deg, #4DD4E0, #2BC5D4)' : 'var(--bg)', color: s <= curStep ? 'white' : '#CBD5E1', border: s === curStep && order.status !== 'completed' ? '2px solid var(--sky)' : '2px solid var(--border)' }}>
+                      {(s < curStep || order.status === 'completed') ? <CheckCircle className="w-4 h-4" /> : s}
                     </motion.div>
                     <span className="text-[8px] mt-1 font-bold" style={{ color: s <= curStep ? 'var(--text)' : '#CBD5E1' }}>{stepLabels[s-1]}</span>
                   </div>
@@ -248,7 +304,7 @@ export default function TrackOrder() {
               <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E8F8FA' }}><MapPin className="w-4 h-4" style={{ color: 'var(--sky)' }} /></div>
               <div className="flex-1">
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Pickup</p>
-                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--text)' }}>{order.pickupAddress}</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--text)' }}>{resolvedPickup}</p>
               </div>
               {isWorker && (
                 <motion.button onClick={() => openMapsNavigation(order.pickupLat, order.pickupLng, 'Pickup', 'google')} whileTap={{ scale: 0.9 }}
@@ -268,7 +324,7 @@ export default function TrackOrder() {
               <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#E8F8FA' }}><Navigation className="w-4 h-4" style={{ color: 'var(--sky)' }} /></div>
               <div className="flex-1">
                 <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Destination</p>
-                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--text)' }}>{order.destinationAddress}</p>
+                <p className="text-sm font-bold mt-0.5" style={{ color: 'var(--text)' }}>{resolvedDestination}</p>
               </div>
               {isWorker && (
                 <motion.button onClick={() => openMapsNavigation(order.destinationLat, order.destinationLng, 'Destination', 'google')} whileTap={{ scale: 0.9 }}
