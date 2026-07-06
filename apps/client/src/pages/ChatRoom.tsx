@@ -156,7 +156,9 @@ export default function ChatRoom() {
           <p className="text-sm font-bold truncate" style={{ color: 'var(--text)' }}>{otherName}</p>
           <p className="text-[10px] font-medium flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
             <MapPin className="w-3 h-3" />
-            {order.pickupAddress}
+            {/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(order.pickupAddress?.trim() ?? '')
+              ? `${order.pickupLat?.toFixed(4)}, ${order.pickupLng?.toFixed(4)}`
+              : order.pickupAddress}
           </p>
         </div>
         {otherPhone && (

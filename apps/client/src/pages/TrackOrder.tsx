@@ -17,7 +17,7 @@ const statusMessages: Record<string, { title: string; sub: string }> = {
   searching_worker: { title: 'Finding Worker', sub: 'Matching with nearest available worker' },
   worker_found: { title: 'Worker Found', sub: 'Worker is heading to pickup' },
   on_the_way: { title: 'On The Way', sub: 'Worker is traveling to your location' },
-  arrived: { title: 'Worker Arrived', sub: 'Worker is at pickup location' },
+  arrived: { title: 'Worker Arrived', sub: 'Worker has reached your location' },
   in_progress: { title: 'In Progress', sub: 'Service is being completed' },
   completed: { title: 'Order Complete', sub: 'Thank you for using BOH!' },
   cancelled: { title: 'Cancelled', sub: 'Order has been cancelled' },
@@ -85,7 +85,7 @@ export default function TrackOrder() {
   const { orders, cancelOrder, rateOrder, updateOrderStatus, sendEmergency, markPaid, refreshOrders } = useOrders();
   const { toast } = useToast();
   const [order, setOrder] = useState<typeof orders[0] | null>(null);
-  const [liveWorkerLocation, setLiveWorkerLocation] = useState<{ lat: number; lng: number; timestamp: number } | null>(null);
+  const [liveWorkerLocation, setLiveWorkerLocation] = useState<{ lat: number; lng: number; accuracy: number | null; timestamp: number } | null>(null);
   const [workerNearPickup, setWorkerNearPickup] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
@@ -115,7 +115,7 @@ export default function TrackOrder() {
       locationUnsub = onSnapshot(doc(db, 'worker_locations', workerFirebaseUid), (locSnap) => {
         if (!locSnap.exists()) return;
         const data = locSnap.data();
-        setLiveWorkerLocation({ lat: data.lat, lng: data.lng, timestamp: data.updatedAt ?? Date.now() });
+        setLiveWorkerLocation({ lat: data.lat, lng: data.lng, accuracy: data.accuracy ?? null, timestamp: data.updatedAt ?? Date.now() });
       });
     });
 
@@ -125,12 +125,18 @@ export default function TrackOrder() {
     };
   }, [orderId]);
 
-  // Detect when worker is within 100m of the pickup location → advance "Arrive" step
+  // Detect when worker is within 50m of the destination (customer's location) → advance "Arrive" step.
+  // Falls back to pickup coords if no destination is set.
+  // Requires GPS accuracy < 80m to avoid false positives from poor signal.
   useEffect(() => {
     if (!liveWorkerLocation || !order) return;
-    const dist = distanceMeters(liveWorkerLocation.lat, liveWorkerLocation.lng, order.pickupLat, order.pickupLng);
-    setWorkerNearPickup(dist < 100);
-  }, [liveWorkerLocation, order?.pickupLat, order?.pickupLng]);
+    const targetLat = order.destinationLat || order.pickupLat;
+    const targetLng = order.destinationLng || order.pickupLng;
+    const dist = distanceMeters(liveWorkerLocation.lat, liveWorkerLocation.lng, targetLat, targetLng);
+    const accuracy = liveWorkerLocation.accuracy;
+    const goodAccuracy = accuracy === null || accuracy < 80;
+    setWorkerNearPickup(dist < 50 && goodAccuracy);
+  }, [liveWorkerLocation, order?.destinationLat, order?.destinationLng, order?.pickupLat, order?.pickupLng]);
 
   useEffect(() => {
     if (!order || order.status === 'completed' || order.status === 'cancelled') return;

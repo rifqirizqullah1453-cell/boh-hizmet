@@ -38,6 +38,7 @@ export function WorkerDashboard() {
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]["id"]>("all");
 
   const gpsWatchRef = useRef<number | null>(null);
+  const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
 
   const acceptOrder = trpc.order.accept.useMutation();
   const updateStatus = trpc.order.updateStatus.useMutation();
@@ -81,14 +82,28 @@ export function WorkerDashboard() {
 
     gpsWatchRef.current = navigator.geolocation.watchPosition(
       ({ coords }) => {
+        // Skip positions with very poor accuracy (likely WiFi/cell tower fallback).
+        // 150m is lenient enough to tolerate indoor GPS, but rejects coarse readings.
+        if (coords.accuracy > 150) return;
+
+        // Debounce: skip Firestore write if worker hasn't moved more than ~8m.
+        // Prevents GPS jitter from constantly re-rendering the customer's map marker.
+        const prev = lastPosRef.current;
+        if (prev) {
+          const dLat = Math.abs(coords.latitude - prev.lat);
+          const dLng = Math.abs(coords.longitude - prev.lng);
+          if (dLat < 0.000072 && dLng < 0.000090) return; // ~8m threshold
+        }
+        lastPosRef.current = { lat: coords.latitude, lng: coords.longitude };
+
         void setDoc(
           doc(firestore, "worker_locations", user.uid),
-          { lat: coords.latitude, lng: coords.longitude, updatedAt: Date.now() },
+          { lat: coords.latitude, lng: coords.longitude, accuracy: Math.round(coords.accuracy), updatedAt: Date.now() },
           { merge: true }
         );
       },
-      () => {},
-      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 15_000 }
+      (err) => console.warn("[GPS] watchPosition error", err.code, err.message),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 }
     );
 
     return () => {
