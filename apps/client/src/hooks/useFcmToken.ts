@@ -5,24 +5,11 @@ import { trpc } from '../providers/trpc';
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined;
 
-const FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
-
-async function registerSwAndInjectConfig() {
+async function registerSw() {
   if (!('serviceWorker' in navigator)) return null;
   try {
     await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
-    // Wait until the SW is fully activated before postMessage — avoids losing
-    // the config message when the SW is still in the "installing" state.
-    const reg = await navigator.serviceWorker.ready;
-    reg.active?.postMessage({ type: 'FIREBASE_CONFIG', config: FIREBASE_CONFIG });
-    return reg;
+    return await navigator.serviceWorker.ready;
   } catch (err) {
     console.warn('[useFcmToken] SW registration failed', err);
     return null;
@@ -45,7 +32,7 @@ export function useFcmToken(enabled: boolean) {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') return;
 
-        const swReg = await registerSwAndInjectConfig();
+        const swReg = await registerSw();
         if (!swReg) return;
 
         const messaging = getMessaging(app);
