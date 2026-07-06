@@ -1,6 +1,10 @@
 importScripts("https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.14.0/firebase-messaging-compat.js");
 
+// Force the new SW to take control immediately when deployed.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
+
 // Firebase client config is public — safe to hardcode here.
 // Service workers are not processed by Vite so import.meta.env is unavailable.
 firebase.initializeApp({
