@@ -17,14 +17,11 @@ const FIREBASE_CONFIG = {
 async function registerSwAndInjectConfig() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
-      scope: "/",
-    });
-    // Wait for the SW to become active.
-    const sw = reg.active ?? reg.installing ?? reg.waiting;
-    if (sw) {
-      sw.postMessage({ type: "FIREBASE_CONFIG", config: FIREBASE_CONFIG });
-    }
+    await navigator.serviceWorker.register("/firebase-messaging-sw.js", { scope: "/" });
+    // Wait until the SW is fully activated before postMessage — avoids losing
+    // the config message when the SW is still in the "installing" state.
+    const reg = await navigator.serviceWorker.ready;
+    reg.active?.postMessage({ type: "FIREBASE_CONFIG", config: FIREBASE_CONFIG });
     return reg;
   } catch (err) {
     console.warn("[useFcmToken] SW registration failed", err);
@@ -37,7 +34,11 @@ export function useFcmToken(enabled: boolean) {
   const savedRef = useRef(false);
 
   useEffect(() => {
-    if (!enabled || savedRef.current || !VAPID_KEY) return;
+    if (!enabled || savedRef.current) return;
+    if (!VAPID_KEY) {
+      console.warn("[useFcmToken] VITE_FIREBASE_VAPID_KEY is not set — push notifications disabled");
+      return;
+    }
 
     void (async () => {
       try {
