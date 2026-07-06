@@ -36,6 +36,16 @@ export async function sendPushToTokens(
           payload: { aps: { sound: "default", badge: 1 } },
           headers: { "apns-priority": "10" },
         },
+        webpush: {
+          headers: { Urgency: "high", TTL: "86400" },
+          notification: {
+            title: notification.title,
+            body: notification.body,
+            icon: "/icons/icon-192.png",
+            badge: "/icons/icon-192.png",
+          },
+          fcmOptions: { link: "/" },
+        },
       });
     } catch (err) {
       console.error("[fcm.service] sendEachForMulticast failed", err);
