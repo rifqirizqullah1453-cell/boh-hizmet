@@ -2,7 +2,141 @@ import { trpc } from "@boh/api";
 import { motion } from "framer-motion";
 import { TrendingUp, CheckCircle2, Clock, XCircle, Users, HardHat } from "lucide-react";
 
-const statusColors: Record<string, string> = {
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// ── Donut Chart ─────────────────────────────────────────────────────────────
+
+interface DonutSegment { label: string; value: number; color: string }
+
+function DonutChart({
+  segments,
+  size = 132,
+  thickness = 22,
+  children,
+}: {
+  segments: DonutSegment[];
+  size?: number;
+  thickness?: number;
+  children?: React.ReactNode;
+}) {
+  const total = segments.reduce((s, d) => s + d.value, 0);
+  const r = (size - thickness) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const C = 2 * Math.PI * r;
+
+  let cumStart = 0;
+
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg
+        width={size}
+        height={size}
+        style={{ transform: "rotate(-90deg)" }}
+      >
+        <circle
+          cx={cx} cy={cy} r={r}
+          fill="none"
+          stroke="var(--surface-container)"
+          strokeWidth={thickness}
+        />
+        {total === 0 ? null : segments.map((seg, i) => {
+          if (seg.value === 0) return null;
+          const len = (seg.value / total) * C;
+          const offset = -cumStart;
+          cumStart += len;
+          return (
+            <circle
+              key={i}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={thickness}
+              strokeDasharray={`${len} ${C}`}
+              strokeDashoffset={offset}
+            />
+          );
+        })}
+      </svg>
+      {children && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Horizontal Bar Chart ─────────────────────────────────────────────────────
+
+function HBar({
+  data,
+  unit = "",
+}: {
+  data: { label: string; value: number; color?: string }[];
+  unit?: string;
+}) {
+  const max = Math.max(...data.map((d) => d.value), 1);
+
+  if (data.length === 0) {
+    return (
+      <p className="text-xs text-center py-4" style={{ color: "var(--on-surface-variant)" }}>
+        Belum ada data
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2.5">
+      {data.map((d, i) => (
+        <div key={i}>
+          <div className="flex items-center justify-between mb-1">
+            <span
+              className="text-xs font-semibold truncate"
+              style={{ color: "var(--on-surface-variant)", maxWidth: "60%" }}
+            >
+              {d.label}
+            </span>
+            <span
+              className="text-xs font-bold shrink-0 ml-2"
+              style={{ color: d.color ?? "var(--primary)" }}
+            >
+              {d.value.toLocaleString("tr-TR")}{unit}
+            </span>
+          </div>
+          <div
+            className="h-2 rounded-full overflow-hidden"
+            style={{ background: "var(--surface-container)" }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${(d.value / max) * 100}%` }}
+              transition={{ duration: 0.6, delay: i * 0.06, ease: "easeOut" }}
+              style={{ background: d.color ?? "var(--primary)" }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const STATUS_COLORS: Record<string, string> = {
   PENDING:     "#d97706",
   ACCEPTED:    "#2563eb",
   IN_PROGRESS: "#7c3aed",
@@ -10,7 +144,7 @@ const statusColors: Record<string, string> = {
   CANCELLED:   "#dc2626",
 };
 
-const statusLabel: Record<string, string> = {
+const STATUS_LABEL: Record<string, string> = {
   PENDING:     "Menunggu",
   ACCEPTED:    "Diterima",
   IN_PROGRESS: "Dikerjakan",
@@ -18,22 +152,35 @@ const statusLabel: Record<string, string> = {
   CANCELLED:   "Dibatalkan",
 };
 
-const serviceLabel: Record<string, string> = {
-  delivery:  "Kurir & Antar",
-  shopping:  "Titip Belanja",
-  cleaning:  "Kebersihan",
-  moving:    "Pindahan",
+const SERVICE_COLORS: Record<string, string> = {
+  delivery: "#38d1da",
+  shopping: "#7c3aed",
+  cleaning: "#059669",
+  moving:   "#d97706",
 };
+
+const SERVICE_LABEL: Record<string, string> = {
+  delivery: "Kurir",
+  shopping: "Belanja",
+  cleaning: "Kebersihan",
+  moving:   "Pindahan",
+};
+
+const WORKER_COLORS = ["#38d1da", "#7c3aed", "#059669", "#d97706", "#2563eb"];
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
   const { data: ordersData }  = trpc.admin.listOrders.useQuery({ limit: 100 });
   const { data: usersData }   = trpc.admin.listUsers.useQuery({ limit: 100 });
-  const { data: workersData } = trpc.admin.listUsers.useQuery({ limit: 100, role: "worker" });
+  const { data: workersData } = trpc.admin.listUsers.useQuery({ limit: 50, role: "worker" });
 
-  const orders = ordersData?.items ?? [];
+  const orders  = ordersData?.items ?? [];
   const totalUsers   = usersData?.items.length ?? 0;
-  const totalWorkers = workersData?.items.length ?? 0;
+  const workers = workersData?.items ?? [];
+  const totalWorkers = workers.length;
 
+  // ── Derived stats ──────────────────────────────────────────────────────────
   const byStatus = orders.reduce<Record<string, number>>((acc, o) => {
     acc[o.status] = (acc[o.status] ?? 0) + 1;
     return acc;
@@ -47,46 +194,85 @@ export function DashboardPage() {
     if (o.serviceType) acc[o.serviceType] = (acc[o.serviceType] ?? 0) + 1;
     return acc;
   }, {});
-  const serviceEntries = Object.entries(byService).sort((a, b) => b[1] - a[1]);
 
-  const recentOrders = orders.slice(0, 5);
+  // ── Per-worker computed from orders ───────────────────────────────────────
+  const workerMap = new Map<number, { name: string; orderCount: number; distKm: number }>();
+  for (const w of workers) {
+    workerMap.set(w.id, {
+      name: w.name ?? `Worker #${w.id}`,
+      orderCount: 0,
+      distKm: 0,
+    });
+  }
+  for (const o of orders) {
+    if (o.workerId == null) continue;
+    const entry = workerMap.get(o.workerId);
+    if (!entry) continue;
+    entry.orderCount++;
+    if (o.status === "COMPLETED") {
+      entry.distKm += haversineKm(
+        Number(o.pickupLat), Number(o.pickupLng),
+        Number(o.destinationLat), Number(o.destinationLng),
+      );
+    }
+  }
+
+  const workerList = Array.from(workerMap.values()).filter((w) => w.orderCount > 0);
+  const topByOrders = [...workerList]
+    .sort((a, b) => b.orderCount - a.orderCount)
+    .slice(0, 5)
+    .map((w, i) => ({ label: w.name, value: w.orderCount, color: WORKER_COLORS[i] }));
+
+  const topByDist = [...workerList]
+    .sort((a, b) => b.distKm - a.distKm)
+    .slice(0, 5)
+    .map((w, i) => ({
+      label: w.name,
+      value: Math.round(w.distKm * 10) / 10,
+      color: WORKER_COLORS[i],
+    }));
+
+  // ── Chart data ────────────────────────────────────────────────────────────
+  const statusSegments: DonutSegment[] = Object.entries(STATUS_COLORS).map(([s, c]) => ({
+    label: STATUS_LABEL[s],
+    value: byStatus[s] ?? 0,
+    color: c,
+  }));
+
+  const serviceSegments: DonutSegment[] = Object.entries(SERVICE_COLORS).map(([s, c]) => ({
+    label: SERVICE_LABEL[s],
+    value: byService[s] ?? 0,
+    color: c,
+  }));
 
   const stats = [
     { label: "Total Pesanan",  value: orders.length,          Icon: TrendingUp,  accent: "var(--primary)" },
     { label: "Selesai",        value: byStatus.COMPLETED ?? 0, Icon: CheckCircle2, accent: "#059669" },
     { label: "Menunggu",       value: byStatus.PENDING ?? 0,   Icon: Clock,        accent: "#d97706" },
-    { label: "Dibatalkan",     value: byStatus.CANCELLED ?? 0, Icon: XCircle,      accent: "var(--error)" },
+    { label: "Dibatalkan",     value: byStatus.CANCELLED ?? 0, Icon: XCircle,      accent: "#dc2626" },
     { label: "Total Pengguna", value: totalUsers,               Icon: Users,        accent: "#7c3aed" },
     { label: "Pekerja",        value: totalWorkers,             Icon: HardHat,      accent: "#2563eb" },
   ];
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="px-4 py-5 max-w-2xl mx-auto space-y-5">
 
-      {/* Revenue hero card */}
+      {/* Revenue hero */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         className="gradient-cyan rounded-3xl p-6 text-white overflow-hidden relative"
         style={{ boxShadow: "0 8px 32px rgba(56,209,218,0.3)" }}
       >
-        <div className="relative z-10">
-          <p className="text-xs font-semibold opacity-70 uppercase tracking-wide mb-1">
-            Total Pendapatan (Order Selesai)
-          </p>
-          <p className="text-3xl font-extrabold tracking-tight">
-            ₺{totalRevenue.toLocaleString("tr-TR")}
-          </p>
-        </div>
-        {/* decorative circle */}
-        <div
-          className="absolute -right-10 -bottom-10 w-36 h-36 rounded-full opacity-20"
-          style={{ background: "white" }}
-        />
-        <div
-          className="absolute right-8 bottom-8 w-16 h-16 rounded-full opacity-10"
-          style={{ background: "white" }}
-        />
+        <p className="text-xs font-semibold opacity-70 uppercase tracking-wide mb-1">
+          Total Pendapatan (Order Selesai)
+        </p>
+        <p className="text-3xl font-extrabold tracking-tight">
+          ₺{totalRevenue.toLocaleString("tr-TR")}
+        </p>
+        <div className="absolute -right-10 -bottom-10 w-36 h-36 rounded-full opacity-20 bg-white" />
+        <div className="absolute right-8 bottom-8 w-16 h-16 rounded-full opacity-10 bg-white" />
       </motion.div>
 
       {/* Stats list */}
@@ -111,16 +297,10 @@ export function DashboardPage() {
               <s.Icon className="w-5 h-5" style={{ color: s.accent }} />
             </div>
             <div className="flex-1">
-              <p
-                className="text-xs font-semibold uppercase tracking-wide"
-                style={{ color: "var(--on-surface-variant)" }}
-              >
+              <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--on-surface-variant)" }}>
                 {s.label}
               </p>
-              <p
-                className="text-2xl font-extrabold leading-tight"
-                style={{ color: "var(--on-surface)" }}
-              >
+              <p className="text-2xl font-extrabold leading-tight" style={{ color: "var(--on-surface)" }}>
                 {s.value.toLocaleString()}
               </p>
             </div>
@@ -128,154 +308,110 @@ export function DashboardPage() {
         ))}
       </div>
 
-      {/* Status distribution */}
-      {orders.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="rounded-2xl p-5"
+      {/* ── Donut charts row ─────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="grid grid-cols-2 gap-3"
+      >
+        {/* Status donut */}
+        <div
+          className="rounded-2xl p-4 flex flex-col items-center gap-3"
           style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
         >
-          <p className="text-sm font-bold mb-4" style={{ color: "var(--on-surface)" }}>
-            Distribusi Status Order
+          <p className="text-xs font-bold self-start" style={{ color: "var(--on-surface)" }}>
+            Status Order
           </p>
-          <div className="space-y-3">
-            {Object.entries(statusColors).map(([status, color]) => {
-              const count = byStatus[status] ?? 0;
-              const pct = orders.length > 0 ? (count / orders.length) * 100 : 0;
-              return (
-                <div key={status}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--on-surface-variant)" }}
-                    >
-                      {statusLabel[status]}
-                    </span>
-                    <span className="text-xs font-bold" style={{ color }}>
-                      {count}
-                    </span>
-                  </div>
-                  <div
-                    className="h-2 rounded-full overflow-hidden"
-                    style={{ background: "var(--surface-container)" }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, background: color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Service distribution */}
-      {serviceEntries.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="rounded-2xl p-5"
-          style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
-        >
-          <p className="text-sm font-bold mb-4" style={{ color: "var(--on-surface)" }}>
-            Distribusi Tipe Layanan
-          </p>
-          <div className="space-y-3">
-            {serviceEntries.map(([svc, count]) => {
-              const pct = orders.length > 0 ? (count / orders.length) * 100 : 0;
-              return (
-                <div key={svc}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span
-                      className="text-xs font-semibold capitalize"
-                      style={{ color: "var(--on-surface-variant)" }}
-                    >
-                      {serviceLabel[svc] ?? svc}
-                    </span>
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: "var(--primary)" }}
-                    >
-                      {pct.toFixed(0)}%
-                    </span>
-                  </div>
-                  <div
-                    className="h-2 rounded-full overflow-hidden"
-                    style={{ background: "var(--surface-container)" }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${pct}%`, background: "var(--primary)" }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Recent orders */}
-      {recentOrders.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
-          className="rounded-2xl overflow-hidden"
-          style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
-        >
-          <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--outline-variant)" }}>
-            <p className="text-sm font-bold" style={{ color: "var(--on-surface)" }}>
-              Order Terbaru
+          <DonutChart segments={statusSegments} size={120} thickness={20}>
+            <p className="text-lg font-extrabold" style={{ color: "var(--on-surface)" }}>
+              {orders.length}
             </p>
-          </div>
-          <div className="divide-y" style={{ borderColor: "var(--outline-variant)" }}>
-            {recentOrders.map((order) => {
-              const color = statusColors[order.status] ?? "#6f797a";
-              return (
-                <div key={order.id} className="flex items-center gap-3 px-5 py-3">
-                  <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-white font-bold text-xs"
-                    style={{ background: color }}
-                  >
-                    {(serviceLabel[order.serviceType ?? ""] ?? order.serviceType ?? "?")[0].toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className="text-sm font-semibold capitalize truncate"
-                      style={{ color: "var(--on-surface)" }}
-                    >
-                      {serviceLabel[order.serviceType ?? ""] ?? order.serviceType}
-                    </p>
-                    <p
-                      className="text-xs truncate"
-                      style={{ color: "var(--on-surface-variant)" }}
-                    >
-                      {order.customerId}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold" style={{ color: "var(--on-surface)" }}>
-                      ₺{order.price.toLocaleString("tr-TR")}
-                    </p>
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: `${color}18`, color }}
-                    >
-                      {statusLabel[order.status] ?? order.status}
-                    </span>
-                  </div>
+            <p className="text-[9px] font-semibold" style={{ color: "var(--on-surface-variant)" }}>
+              total
+            </p>
+          </DonutChart>
+          <div className="w-full space-y-1">
+            {statusSegments.filter((s) => s.value > 0).map((s) => (
+              <div key={s.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+                  <span className="text-[10px] font-semibold" style={{ color: "var(--on-surface-variant)" }}>
+                    {s.label}
+                  </span>
                 </div>
-              );
-            })}
+                <span className="text-[10px] font-bold" style={{ color: s.color }}>
+                  {s.value}
+                </span>
+              </div>
+            ))}
           </div>
-        </motion.div>
-      )}
+        </div>
+
+        {/* Service donut */}
+        <div
+          className="rounded-2xl p-4 flex flex-col items-center gap-3"
+          style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
+        >
+          <p className="text-xs font-bold self-start" style={{ color: "var(--on-surface)" }}>
+            Tipe Layanan
+          </p>
+          <DonutChart segments={serviceSegments} size={120} thickness={20}>
+            <p className="text-lg font-extrabold" style={{ color: "var(--on-surface)" }}>
+              {Object.values(byService).reduce((a, b) => a + b, 0)}
+            </p>
+            <p className="text-[9px] font-semibold" style={{ color: "var(--on-surface-variant)" }}>
+              order
+            </p>
+          </DonutChart>
+          <div className="w-full space-y-1">
+            {serviceSegments.filter((s) => s.value > 0).map((s) => (
+              <div key={s.label} className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+                  <span className="text-[10px] font-semibold" style={{ color: "var(--on-surface-variant)" }}>
+                    {s.label}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold" style={{ color: s.color }}>
+                  {s.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ── Worker charts ─────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.45 }}
+        className="rounded-2xl p-5"
+        style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
+      >
+        <p className="text-sm font-bold mb-4" style={{ color: "var(--on-surface)" }}>
+          Pesanan per Pekerja
+        </p>
+        <HBar data={topByOrders} unit=" order" />
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="rounded-2xl p-5"
+        style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
+      >
+        <p className="text-sm font-bold mb-1" style={{ color: "var(--on-surface)" }}>
+          Jarak Tempuh per Pekerja
+        </p>
+        <p className="text-xs mb-4" style={{ color: "var(--on-surface-variant)" }}>
+          Hanya order selesai · estimasi garis lurus
+        </p>
+        <HBar data={topByDist} unit=" km" />
+      </motion.div>
+
     </div>
   );
 }
