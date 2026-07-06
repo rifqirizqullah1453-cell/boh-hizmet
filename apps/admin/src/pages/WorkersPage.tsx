@@ -210,7 +210,7 @@ export function WorkersPage() {
   const onlineCount = workers.filter((w) => w.isOnline).length;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Map */}
       <div className="flex-1 relative">
         <WorkerMap
@@ -220,28 +220,50 @@ export function WorkersPage() {
           onSelectWorker={setSelectedWorkerId}
         />
         {/* Map overlay badge */}
-        <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "white", boxShadow: "var(--shadow-md)" }}>
-          <MapPin className="w-4 h-4" style={{ color: "var(--cyan)" }} />
-          <span className="text-sm font-bold" style={{ color: "var(--text)" }}>{locations.size} lokasi aktif</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "#D1FAE5", color: "#059669" }}>{onlineCount} online</span>
+        <div
+          className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-2 rounded-2xl"
+          style={{ background: "var(--surface-container-lowest)", boxShadow: "var(--shadow-md)", border: "1px solid var(--outline-variant)" }}
+        >
+          <MapPin className="w-4 h-4" style={{ color: "var(--primary)" }} />
+          <span className="text-sm font-bold" style={{ color: "var(--on-surface)" }}>
+            {locations.size} lokasi aktif
+          </span>
+          <span
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
+            style={{ background: "#d1fae5", color: "#059669" }}
+          >
+            {onlineCount} online
+          </span>
         </div>
       </div>
 
       {/* Right panel */}
-      <div className="w-80 flex flex-col" style={{ background: "var(--bg-card)", borderLeft: "1px solid var(--border)" }}>
+      <div
+        className="w-80 flex flex-col"
+        style={{ background: "var(--surface-container-lowest)", borderLeft: "1px solid var(--outline-variant)" }}
+      >
         <AnimatePresence mode="wait">
           {selectedWorker ? (
             <WorkerDetail key={selectedWorker.id} worker={selectedWorker} onBack={() => setSelectedWorkerId(null)} />
           ) : (
             <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
               {/* Header */}
-              <div className="p-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
+              <div
+                className="p-4 flex items-center justify-between"
+                style={{ borderBottom: "1px solid var(--outline-variant)" }}
+              >
                 <div>
-                  <h1 className="font-black text-sm" style={{ color: "var(--text)" }}>Workers</h1>
-                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>{workers.length} terdaftar · {onlineCount} online</p>
+                  <h1 className="font-extrabold text-sm" style={{ color: "var(--on-surface)" }}>Pekerja</h1>
+                  <p className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
+                    {workers.length} terdaftar · {onlineCount} online
+                  </p>
                 </div>
-                <button onClick={() => void refetch()} className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
-                  <RefreshCw className="w-3.5 h-3.5" style={{ color: "var(--text-muted)" }} />
+                <button
+                  onClick={() => void refetch()}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
+                  style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}
+                >
+                  <RefreshCw className="w-3.5 h-3.5" style={{ color: "var(--on-surface-variant)" }} />
                 </button>
               </div>
 
@@ -253,21 +275,38 @@ export function WorkersPage() {
                     <button
                       key={worker.id}
                       onClick={() => setSelectedWorkerId(worker.id)}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all"
-                      style={{ background: "var(--bg)", border: "1px solid var(--border)" }}
+                      className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-[0.98]"
+                      style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}
                     >
-                      <div className="w-9 h-9 rounded-xl gradient-cyan flex items-center justify-center shrink-0">
-                        <span className="text-white font-black text-sm">{(worker.name ?? "?")[0].toUpperCase()}</span>
+                      <div className="w-10 h-10 rounded-full gradient-cyan flex items-center justify-center shrink-0">
+                        <span className="text-white font-bold text-sm">
+                          {(worker.name ?? "?")[0].toUpperCase()}
+                        </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate" style={{ color: "var(--text)" }}>{worker.name ?? `Worker #${worker.id}`}</p>
-                        <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>{worker.phone ?? "—"}</p>
+                        <p className="font-semibold text-sm truncate" style={{ color: "var(--on-surface)" }}>
+                          {worker.name ?? `Worker #${worker.id}`}
+                        </p>
+                        <p className="text-xs truncate" style={{ color: "var(--on-surface-variant)" }}>
+                          {worker.phone ?? "—"}
+                        </p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={worker.isOnline ? { background: "#D1FAE5", color: "#059669" } : { background: "var(--border)", color: "var(--text-muted)" }}>
+                        <span
+                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                          style={
+                            worker.isOnline
+                              ? { background: "#d1fae5", color: "#059669" }
+                              : { background: "var(--surface-container)", color: "var(--on-surface-variant)" }
+                          }
+                        >
                           {worker.isOnline ? "Online" : "Offline"}
                         </span>
-                        {hasLoc && <span className="text-[10px] font-semibold" style={{ color: "var(--cyan)" }}>📍 GPS</span>}
+                        {hasLoc && (
+                          <span className="text-[10px] font-semibold" style={{ color: "var(--primary)" }}>
+                            📍 GPS
+                          </span>
+                        )}
                       </div>
                     </button>
                   );
@@ -276,8 +315,24 @@ export function WorkersPage() {
                 {/* Pagination */}
                 {(workersData?.nextCursor || cursor) && (
                   <div className="flex gap-2 pt-2">
-                    {cursor && <button onClick={() => setCursor(undefined)} className="flex-1 py-2 rounded-xl text-xs font-semibold" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>← Pertama</button>}
-                    {workersData?.nextCursor && <button onClick={() => setCursor(workersData.nextCursor)} className="flex-1 py-2 rounded-xl text-xs font-semibold" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Selanjutnya →</button>}
+                    {cursor && (
+                      <button
+                        onClick={() => setCursor(undefined)}
+                        className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                        style={{ background: "var(--surface-container)", border: "1px solid var(--outline-variant)", color: "var(--on-surface-variant)" }}
+                      >
+                        ← Pertama
+                      </button>
+                    )}
+                    {workersData?.nextCursor && (
+                      <button
+                        onClick={() => setCursor(workersData.nextCursor)}
+                        className="flex-1 py-2 rounded-xl text-xs font-semibold"
+                        style={{ background: "var(--surface-container)", border: "1px solid var(--outline-variant)", color: "var(--on-surface-variant)" }}
+                      >
+                        Selanjutnya →
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

@@ -1,18 +1,40 @@
 import { useState } from "react";
 import { trpc } from "@boh/api";
-import { Search, RefreshCw, ChevronRight, ChevronLeft, UserCog } from "lucide-react";
+import { Search, RefreshCw, ChevronLeft, ChevronRight, UserCog } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { User } from "@boh/db";
 
 type UserRole = User["role"];
 
-const roleColors: Record<UserRole, { bg: string; text: string }> = {
-  customer: { bg: "#EDE9FE", text: "#7C3AED" },
-  worker:   { bg: "#D1FAE5", text: "#059669" },
-  admin:    { bg: "#FEF3C7", text: "#D97706" },
+const roleStyle: Record<UserRole, { bg: string; text: string; label: string }> = {
+  customer: { bg: "#ede9fe", text: "#7c3aed", label: "Pelanggan" },
+  worker:   { bg: "#d1fae5", text: "#059669", label: "Pekerja"   },
+  admin:    { bg: "#b7eff3", text: "#00373a", label: "Admin"     },
 };
 
 const roles: (UserRole | "")[] = ["", "customer", "worker", "admin"];
+const roleFilterLabel: Record<string, string> = {
+  "":       "Semua",
+  customer: "Pelanggan",
+  worker:   "Pekerja",
+  admin:    "Admin",
+};
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "?";
+  const parts = name.trim().split(" ");
+  return parts.length >= 2
+    ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+    : name[0].toUpperCase();
+}
+
+const avatarColors = [
+  "#38d1da", "#7c3aed", "#059669", "#d97706", "#2563eb", "#dc2626",
+];
+
+function avatarColor(id: number): string {
+  return avatarColors[id % avatarColors.length];
+}
 
 export function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<UserRole | undefined>();
@@ -31,130 +53,272 @@ export function UsersPage() {
     onSuccess: () => { setEditUser(null); void refetch(); },
   });
 
-  const users = (data?.items ?? []).filter((u) =>
-    search === "" || u.name?.toLowerCase().includes(search.toLowerCase())
+  const users = (data?.items ?? []).filter(
+    (u) => search === "" || u.name?.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const onlineCount = (data?.items ?? []).filter((u) => u.isOnline).length;
+
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black" style={{ color: "var(--text)" }}>Users</h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Semua pengguna terdaftar</p>
+    <div className="px-4 py-5 max-w-2xl mx-auto">
+
+      {/* Stats bento */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        {[
+          { label: "Total Pengguna", value: data?.items.length ?? 0, accent: "var(--primary)" },
+          { label: "Online Sekarang", value: onlineCount, accent: "#059669" },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="rounded-2xl p-4"
+            style={{
+              background: "var(--surface-container-lowest)",
+              border: "1px solid var(--outline-variant)",
+              borderTop: `3px solid ${s.accent}`,
+            }}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: "var(--on-surface-variant)" }}>
+              {s.label}
+            </p>
+            <p className="text-2xl font-extrabold" style={{ color: "var(--on-surface)" }}>
+              {s.value.toLocaleString()}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Search + refresh */}
+      <div className="flex items-center gap-2 mb-4">
+        <div
+          className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-2xl"
+          style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
+        >
+          <Search className="w-4 h-4 shrink-0" style={{ color: "var(--on-surface-variant)" }} />
+          <input
+            placeholder="Cari nama pengguna..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 text-sm font-medium outline-none bg-transparent"
+            style={{ color: "var(--on-surface)" }}
+          />
         </div>
-        <button onClick={() => void refetch()} className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold" style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-          <RefreshCw className="w-4 h-4" /> Refresh
+        <button
+          onClick={() => void refetch()}
+          className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all active:scale-95"
+          style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}
+        >
+          <RefreshCw className="w-4 h-4" style={{ color: "var(--on-surface-variant)" }} />
         </button>
       </div>
 
-      <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "var(--text-muted)" }} />
-          <input
-            placeholder="Cari nama..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 pr-4 py-2 rounded-xl text-sm font-medium outline-none"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text)", width: 220 }}
+      {/* Filter pills */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-5">
+        {roles.map((r) => {
+          const active = (r || undefined) === roleFilter;
+          return (
+            <button
+              key={r || "all"}
+              onClick={() => { setRoleFilter(r || undefined); setCursor(undefined); }}
+              className="shrink-0 px-4 py-2 rounded-full text-xs font-bold transition-all active:scale-95"
+              style={
+                active
+                  ? { background: "var(--primary)", color: "var(--on-primary)" }
+                  : {
+                      background: "var(--surface-container-lowest)",
+                      border: "1px solid var(--outline-variant)",
+                      color: "var(--on-surface-variant)",
+                    }
+              }
+            >
+              {roleFilterLabel[r]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* User cards */}
+      {isLoading ? (
+        <div className="flex justify-center py-16">
+          <div
+            className="w-8 h-8 rounded-full border-[3px]"
+            style={{
+              borderColor: "var(--outline-variant)",
+              borderTopColor: "var(--primary)",
+              animation: "spin 1s linear infinite",
+            }}
           />
         </div>
-        <div className="flex gap-2">
-          {roles.map((r) => (
-            <button key={r || "all"} onClick={() => { setRoleFilter(r || undefined); setCursor(undefined); }}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all"
-              style={(r || undefined) === roleFilter ? { background: "var(--cyan)", color: "white" } : { background: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-              {r || "Semua"}
-            </button>
-          ))}
+      ) : users.length === 0 ? (
+        <div className="py-16 text-center text-sm" style={{ color: "var(--on-surface-variant)" }}>
+          Tidak ada pengguna
         </div>
-      </div>
+      ) : (
+        <div className="space-y-3">
+          {users.map((user, i) => {
+            const rs = roleStyle[user.role];
+            const color = avatarColor(user.id);
+            return (
+              <motion.div
+                key={user.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                className="flex items-center gap-4 p-4 rounded-2xl"
+                style={{
+                  background: "var(--surface-container-lowest)",
+                  border: "1px solid var(--outline-variant)",
+                }}
+              >
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                    style={{ background: color }}
+                  >
+                    {getInitials(user.name)}
+                  </div>
+                  {user.isOnline && (
+                    <span
+                      className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2"
+                      style={{
+                        background: "#10b981",
+                        borderColor: "var(--surface-container-lowest)",
+                      }}
+                    />
+                  )}
+                </div>
 
-      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)", background: "var(--bg)" }}>
-                {["ID", "Nama", "Telepon", "Role", "Rating", "Status", "Bergabung", "Aksi"].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-bold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr><td colSpan={8} className="py-12 text-center text-sm" style={{ color: "var(--text-muted)" }}>Memuat...</td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan={8} className="py-12 text-center text-sm" style={{ color: "var(--text-muted)" }}>Tidak ada user</td></tr>
-              ) : (
-                users.map((user) => {
-                  const rc = roleColors[user.role];
-                  return (
-                    <tr key={user.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td className="px-4 py-3 font-mono text-xs" style={{ color: "var(--text-muted)" }}>{user.id}</td>
-                      <td className="px-4 py-3 font-semibold" style={{ color: "var(--text)" }}>{user.name ?? "—"}</td>
-                      <td className="px-4 py-3 text-xs" style={{ color: "var(--text-secondary)" }}>{user.phone ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-bold capitalize" style={{ background: rc.bg, color: rc.text }}>{user.role}</span>
-                      </td>
-                      <td className="px-4 py-3 text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
-                        {user.rating != null ? `⭐ ${Number(user.rating).toFixed(1)} (${user.totalRatings})` : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        {user.isOnline ? (
-                          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#10B981" }}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" /> Online
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Offline</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-xs" style={{ color: "var(--text-muted)" }}>
-                        {new Date(user.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "2-digit" })}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button onClick={() => { setEditUser(user); setNewRole(user.role); }} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold" style={{ background: "#EDE9FE", color: "#7C3AED" }}>
-                          <UserCog className="w-3.5 h-3.5" /> Role
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: "1px solid var(--border)" }}>
-          <button onClick={() => setCursor(undefined)} disabled={!cursor} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-            <ChevronLeft className="w-3.5 h-3.5" /> Pertama
-          </button>
-          <button onClick={() => setCursor(data?.nextCursor)} disabled={!data?.nextCursor} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-40" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-            Selanjutnya <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p
+                      className="text-sm font-semibold truncate"
+                      style={{ color: "var(--on-surface)" }}
+                    >
+                      {user.name ?? `User #${user.id}`}
+                    </p>
+                    <span
+                      className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                      style={{ background: rs.bg, color: rs.text }}
+                    >
+                      {rs.label}
+                    </span>
+                  </div>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--on-surface-variant)" }}>
+                    {user.phone ?? "—"}
+                    {user.rating != null && (
+                      <span className="ml-2">⭐ {Number(user.rating).toFixed(1)}</span>
+                    )}
+                  </p>
+                </div>
 
+                {/* Action */}
+                <button
+                  onClick={() => { setEditUser(user); setNewRole(user.role); }}
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95"
+                  style={{ background: "#ede9fe", color: "#7c3aed" }}
+                >
+                  <UserCog className="w-4 h-4" />
+                </button>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {(cursor || data?.nextCursor) && (
+        <div className="flex items-center gap-3 mt-5">
+          <button
+            onClick={() => setCursor(undefined)}
+            disabled={!cursor}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-xs font-bold disabled:opacity-40 transition-all active:scale-95"
+            style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", color: "var(--on-surface-variant)" }}
+          >
+            <ChevronLeft className="w-4 h-4" /> Pertama
+          </button>
+          <button
+            onClick={() => setCursor(data?.nextCursor)}
+            disabled={!data?.nextCursor}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-2xl text-xs font-bold disabled:opacity-40 transition-all active:scale-95"
+            style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)", color: "var(--on-surface-variant)" }}
+          >
+            Selanjutnya <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Role modal */}
       <AnimatePresence>
         {editUser && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={() => setEditUser(null)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl p-6" style={{ background: "var(--bg-card)" }}>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-6 sm:items-center"
+            style={{ background: "rgba(0,0,0,0.4)" }}
+            onClick={() => setEditUser(null)}
+          >
+            <motion.div
+              initial={{ y: 48, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 48, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm rounded-3xl p-6"
+              style={{ background: "var(--surface-container-lowest)" }}
+            >
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: "#EDE9FE" }}><UserCog className="w-5 h-5" style={{ color: "#7C3AED" }} /></div>
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm"
+                  style={{ background: avatarColor(editUser.id) }}
+                >
+                  {getInitials(editUser.name)}
+                </div>
                 <div>
-                  <h3 className="font-bold text-sm" style={{ color: "var(--text)" }}>Ubah Role</h3>
-                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>{editUser.name ?? `User #${editUser.id}`}</p>
+                  <h3 className="font-bold" style={{ color: "var(--on-surface)" }}>
+                    Ubah Role
+                  </h3>
+                  <p className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
+                    {editUser.name ?? `User #${editUser.id}`}
+                  </p>
                 </div>
               </div>
+
               <div className="flex gap-2 mb-5">
-                {(["customer", "worker", "admin"] as UserRole[]).map((r) => (
-                  <button key={r} onClick={() => setNewRole(r)} className="flex-1 py-2.5 rounded-xl text-xs font-bold capitalize transition-all"
-                    style={newRole === r ? { background: "var(--cyan)", color: "white" } : { background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>
-                    {r}
-                  </button>
-                ))}
+                {(["customer", "worker", "admin"] as UserRole[]).map((r) => {
+                  const rs = roleStyle[r];
+                  return (
+                    <button
+                      key={r}
+                      onClick={() => setNewRole(r)}
+                      className="flex-1 py-3 rounded-2xl text-xs font-bold transition-all"
+                      style={
+                        newRole === r
+                          ? { background: rs.bg, color: rs.text, border: `2px solid ${rs.text}` }
+                          : { background: "var(--surface-container)", color: "var(--on-surface-variant)" }
+                      }
+                    >
+                      {rs.label}
+                    </button>
+                  );
+                })}
               </div>
+
               <div className="flex gap-3">
-                <button onClick={() => setEditUser(null)} className="flex-1 py-2.5 rounded-xl text-sm font-semibold" style={{ background: "var(--bg)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Batal</button>
-                <button onClick={() => setRoleMutation.mutate({ userId: editUser.id, role: newRole })} disabled={newRole === editUser.role || setRoleMutation.isPending} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 gradient-cyan">
-                  {setRoleMutation.isPending ? "..." : "Simpan"}
+                <button
+                  onClick={() => setEditUser(null)}
+                  className="flex-1 py-3 rounded-2xl text-sm font-semibold"
+                  style={{ background: "var(--surface-container)", color: "var(--on-surface-variant)" }}
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => setRoleMutation.mutate({ userId: editUser.id, role: newRole })}
+                  disabled={newRole === editUser.role || setRoleMutation.isPending}
+                  className="flex-1 py-3 rounded-2xl text-sm font-bold text-white disabled:opacity-50 gradient-cyan"
+                >
+                  {setRoleMutation.isPending ? "…" : "Simpan"}
                 </button>
               </div>
             </motion.div>
