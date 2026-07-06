@@ -24,7 +24,7 @@ const statusMessages: Record<string, { title: string; sub: string }> = {
 };
 const stepLabels = ['Order', 'Accepted', 'Travel', 'Arrive', 'Done'];
 // in_progress → 5: worker has started service = "Arrive" is already done (checkmark), heading to Done
-const stepMap: Record<string, number> = { searching_worker: 1, worker_found: 2, on_the_way: 3, arrived: 4, in_progress: 5, completed: 5, cancelled: 0 };
+const stepMap: Record<string, number> = { searching_worker: 1, worker_found: 2, on_the_way: 3, arrived: 4, in_progress: 4, completed: 5, cancelled: 0 };
 
 // Haversine distance in meters between two GPS coordinates
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -87,6 +87,7 @@ export default function TrackOrder() {
   const [order, setOrder] = useState<typeof orders[0] | null>(null);
   const [liveWorkerLocation, setLiveWorkerLocation] = useState<{ lat: number; lng: number; accuracy: number | null; timestamp: number } | null>(null);
   const [workerNearPickup, setWorkerNearPickup] = useState(false);
+  const [workerIsMoving, setWorkerIsMoving] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
@@ -137,6 +138,13 @@ export default function TrackOrder() {
     const goodAccuracy = accuracy === null || accuracy < 80;
     setWorkerNearPickup(dist < 50 && goodAccuracy);
   }, [liveWorkerLocation, order?.destinationLat, order?.destinationLng, order?.pickupLat, order?.pickupLng]);
+
+  // Detect when worker has left the pickup area (> 50m) → Travel step
+  useEffect(() => {
+    if (!liveWorkerLocation || !order) return;
+    const dist = distanceMeters(liveWorkerLocation.lat, liveWorkerLocation.lng, order.pickupLat, order.pickupLng);
+    setWorkerIsMoving(dist > 50);
+  }, [liveWorkerLocation, order?.pickupLat, order?.pickupLng]);
 
   useEffect(() => {
     if (!order || order.status === 'completed' || order.status === 'cancelled') return;
@@ -208,11 +216,15 @@ export default function TrackOrder() {
   };
 
   const st = STATUS_LABELS[order.status];
-  // If worker is physically near the pickup location while status is still "worker_found",
-  // show step 4 (Arrive) proactively instead of step 2 (Accepted) / step 3 (Travel).
   const baseStep = stepMap[order.status] || 1;
-  const curStep = (workerNearPickup && order.status === 'worker_found') ? 4 : baseStep;
-  const effectiveStatus = workerNearPickup && order.status === 'worker_found' ? 'arrived' : order.status;
+  const curStep =
+    order.status === 'worker_found' && workerNearPickup ? 4 :
+    order.status === 'worker_found' && workerIsMoving ? 3 :
+    baseStep;
+  const effectiveStatus =
+    order.status === 'worker_found' && workerNearPickup ? 'arrived' :
+    order.status === 'worker_found' && workerIsMoving ? 'on_the_way' :
+    order.status;
   const statusInfo = statusMessages[effectiveStatus] || statusMessages.searching_worker;
 
   return (
@@ -255,7 +267,7 @@ export default function TrackOrder() {
                 {[1,2,3,4,5].map(s => (
                   <div key={s} className="flex flex-col items-center z-10 w-10">
                     <motion.div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black" animate={s === curStep && order.status !== 'completed' ? { scale: [1,1.15,1] } : {}} transition={{ duration: 1.5, repeat: Infinity }} style={{ background: s <= curStep ? 'linear-gradient(135deg, #4DD4E0, #2BC5D4)' : 'var(--bg)', color: s <= curStep ? 'white' : '#CBD5E1', border: s === curStep && order.status !== 'completed' ? '2px solid var(--sky)' : '2px solid var(--border)' }}>
-                      {(s < curStep || order.status === 'completed') ? <CheckCircle className="w-4 h-4" /> : s}
+                      {(s < curStep || order.status === 'completed' || (s === curStep && order.status === 'in_progress')) ? <CheckCircle className="w-4 h-4" /> : s}
                     </motion.div>
                     <span className="text-[8px] mt-1 font-bold" style={{ color: s <= curStep ? 'var(--text)' : '#CBD5E1' }}>{stepLabels[s-1]}</span>
                   </div>
