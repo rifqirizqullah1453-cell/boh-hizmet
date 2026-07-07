@@ -1,4 +1,4 @@
-import { eq, and, inArray, type SQL } from "drizzle-orm";
+import { eq, and, desc, type SQL } from "drizzle-orm";
 import { orders, users, type Database, type Order, type User } from "@boh/db";
 
 type OrderStatus = Order["status"];
@@ -67,4 +67,33 @@ export async function updateUserRole(
   role: UserRole
 ): Promise<void> {
   await db.update(users).set({ role, updatedAt: new Date() }).where(eq(users.id, userId));
+}
+
+export async function getWorkerStats(
+  db: Database,
+  workerId: number
+): Promise<{
+  totalOrders: number;
+  completedOrders: number;
+  totalEarnings: number;
+  activeOrder: Order | null;
+  recentOrders: Order[];
+}> {
+  const allOrders = await db.query.orders.findMany({
+    where: eq(orders.workerId, workerId),
+    orderBy: [desc(orders.createdAt)],
+  });
+
+  const completed = allOrders.filter((o) => o.status === "COMPLETED");
+  const totalEarnings = completed.reduce((sum, o) => sum + (o.price ?? 0), 0);
+  const activeOrder =
+    allOrders.find((o) => o.status === "ACCEPTED" || o.status === "IN_PROGRESS") ?? null;
+
+  return {
+    totalOrders: allOrders.length,
+    completedOrders: completed.length,
+    totalEarnings,
+    activeOrder,
+    recentOrders: allOrders.slice(0, 15),
+  };
 }

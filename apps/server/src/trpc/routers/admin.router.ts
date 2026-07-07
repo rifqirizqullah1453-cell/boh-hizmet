@@ -6,6 +6,7 @@ import {
   listAllOrders,
   listAllUsers,
   updateUserRole,
+  getWorkerStats,
 } from "../../services/admin/admin.repository";
 
 const paginationInput = {
@@ -65,4 +66,8 @@ export const adminRouter = router({
     .mutation(({ ctx, input }) =>
       orderService.adminForceCancel(ctx.db, input.orderId, input.reason)
     ),
+
+  workerStats: adminProcedure
+    .input(z.object({ workerId: z.number().int() }))
+    .query(({ ctx, input }) => getWorkerStats(ctx.db, input.workerId)),
 });

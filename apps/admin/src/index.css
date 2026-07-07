@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,45 +6,44 @@
 
 @layer base {
   :root {
-    /* MD3 color tokens from Stitch */
-    --primary: #38d1da;
-    --on-primary: #00373a;
-    --primary-container: #b7eff3;
-    --on-primary-container: #002022;
-    --secondary: #4a6365;
-    --secondary-container: #cde7eb;
-    --tertiary-container: #d6e3ff;
+    /* Stitch Premium color tokens */
+    --primary: #00696e;
+    --on-primary: #ffffff;
+    --primary-container: #38d1da;
+    --on-primary-container: #00565a;
+    --primary-fixed: #6cf6ff;
+    --secondary: #5d5e61;
+    --tertiary: #505f76;
+    --tertiary-container: #afbfd9;
     --error: #ba1a1a;
     --error-container: #ffdad6;
 
-    --surface: #f8fafb;
+    --surface: #f4fbfb;
+    --surface-bright: #f4fbfb;
+    --surface-dim: #d5dbdb;
     --surface-container-lowest: #ffffff;
-    --surface-container-low: #f2f4f5;
-    --surface-container: #ecedee;
-    --surface-container-high: #e7e9ea;
-    --on-surface: #191c1d;
-    --on-surface-variant: #3f4849;
-    --outline: #6f797a;
-    --outline-variant: #bfc8ca;
+    --surface-container-low: #eef5f5;
+    --surface-container: #e9efef;
+    --surface-container-high: #e3e9e9;
+    --surface-container-highest: #dde4e4;
+    --on-surface: #161d1d;
+    --on-surface-variant: #3c494a;
+    --outline: #6c7a7a;
+    --outline-variant: #bbc9ca;
+    --inverse-surface: #2b3232;
 
-    /* Legacy aliases for existing components */
+    /* Legacy aliases kept for compat */
     --cyan: #38d1da;
-    --cyan-light: #5bdde6;
-    --cyan-dark: #00b8c0;
-    --cyan-glow: rgba(56, 209, 218, 0.18);
-    --cyan-soft: rgba(56, 209, 218, 0.08);
-    --bg: #f8fafb;
+    --bg: #f4fbfb;
     --bg-card: #ffffff;
-    --sidebar: #002022;
-    --sidebar-hover: rgba(56, 209, 218, 0.1);
-    --sidebar-active: rgba(56, 209, 218, 0.15);
-    --text: #191c1d;
-    --text-secondary: #3f4849;
-    --text-muted: #6f797a;
+    --sidebar: #f4fbfb;
+    --text: #161d1d;
+    --text-secondary: #3c494a;
+    --text-muted: #6c7a7a;
     --text-inverse: #ffffff;
-    --border: #bfc8ca;
-    --shadow-sm: 0 1px 4px rgba(25, 28, 29, 0.06);
-    --shadow-md: 0 4px 20px rgba(25, 28, 29, 0.08);
+    --border: #bbc9ca;
+    --shadow-sm: 0 1px 4px rgba(22, 29, 29, 0.06);
+    --shadow-md: 0 4px 20px rgba(22, 29, 29, 0.08);
   }
 
   * { box-sizing: border-box; }
@@ -56,21 +55,32 @@
     color: var(--on-surface);
     -webkit-font-smoothing: antialiased;
     margin: 0;
+    overflow-x: hidden;
   }
 
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--outline-variant); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #bbc9ca; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #6c7a7a; }
 }
 
 @layer utilities {
-  .gradient-cyan { background: linear-gradient(135deg, #5bdde6 0%, #38d1da 50%, #00b8c0 100%); }
+  .gradient-cyan      { background: linear-gradient(135deg, #00696e 0%, #38d1da 100%); }
+  .premium-gradient   { background: linear-gradient(135deg, #00696e 0%, #38d1da 100%); }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(22, 29, 29, 0.08);
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.04);
+  }
+
+  .chart-glow { filter: drop-shadow(0px 4px 12px rgba(56, 209, 218, 0.35)); }
+
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
-@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-@keyframes pulse-ring {
-  0% { transform: scale(0.8); opacity: 1; }
-  100% { transform: scale(2.4); opacity: 0; }
-}
+@keyframes spin      { from { transform: rotate(0deg); }   to { transform: rotate(360deg); } }
+@keyframes pulse-dot { 0%,100% { opacity: 1; }             50% { opacity: 0.4; } }

@@ -63,16 +63,13 @@ function WorkerMap({
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
-
     const workersByUid = new Map(workers.map((w) => [w.firebaseUid, w]));
     const seen = new Set<string>();
-
     for (const [uid, loc] of locations) {
       seen.add(uid);
       const worker = workersByUid.get(uid);
       const online = worker?.isOnline ?? false;
       const existing = markersRef.current.get(uid);
-
       if (existing) {
         existing.setLatLng([loc.lat, loc.lng]);
         existing.setIcon(workerIcon(online));
@@ -80,18 +77,12 @@ function WorkerMap({
         const marker = L.marker([loc.lat, loc.lng], { icon: workerIcon(online) })
           .addTo(map)
           .bindTooltip(worker?.name ?? uid, { permanent: false, direction: "top" });
-        if (worker) {
-          marker.on("click", () => onSelectWorker(worker.id));
-        }
+        if (worker) marker.on("click", () => onSelectWorker(worker.id));
         markersRef.current.set(uid, marker);
       }
     }
-
     for (const [uid, marker] of markersRef.current) {
-      if (!seen.has(uid)) {
-        marker.remove();
-        markersRef.current.delete(uid);
-      }
+      if (!seen.has(uid)) { marker.remove(); markersRef.current.delete(uid); }
     }
   }, [locations, workers, onSelectWorker]);
 
@@ -118,24 +109,37 @@ function WorkerDetail({ worker, onBack }: { worker: User; onBack: () => void }) 
       className="flex flex-col h-full"
     >
       {/* Header */}
-      <div className="p-4 flex items-center gap-3" style={{ borderBottom: "1px solid var(--border)" }}>
-        <button onClick={onBack} className="w-8 h-8 rounded-xl flex items-center justify-center transition-all" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
-          <ArrowLeft className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
+      <div className="p-4 flex items-center gap-3" style={{ borderBottom: "1px solid var(--outline-variant)" }}>
+        <button
+          onClick={onBack}
+          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all active:scale-95"
+          style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}
+        >
+          <ArrowLeft className="w-4 h-4" style={{ color: "var(--on-surface-variant)" }} />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="font-black text-sm truncate" style={{ color: "var(--text)" }}>{worker.name ?? `Worker #${worker.id}`}</p>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>{worker.phone ?? "No phone"}</p>
+          <p className="font-black text-sm truncate" style={{ color: "var(--on-surface)" }}>{worker.name ?? `Worker #${worker.id}`}</p>
+          <p className="text-xs" style={{ color: "var(--outline)" }}>{worker.phone ?? "No phone"}</p>
         </div>
-        <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg" style={worker.isOnline ? { background: "#D1FAE5", color: "#059669" } : { background: "var(--bg)", color: "var(--text-muted)" }}>
+        <span
+          className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg"
+          style={worker.isOnline
+            ? { background: "#D1FAE5", color: "#059669" }
+            : { background: "var(--surface-container)", color: "var(--on-surface-variant)" }}
+        >
           <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: worker.isOnline ? "#10B981" : "#9CA3AF" }} />
           {worker.isOnline ? "Online" : "Offline"}
         </span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Stats */}
         {isLoading ? (
-          <div className="py-8 flex justify-center"><div className="w-6 h-6 rounded-full border-[2px] border-t-cyan-400" style={{ borderColor: "var(--border)", borderTopColor: "var(--cyan)", animation: "spin 1s linear infinite" }} /></div>
+          <div className="py-8 flex justify-center">
+            <div
+              className="w-6 h-6 rounded-full border-[2px]"
+              style={{ borderColor: "var(--outline-variant)", borderTopColor: "var(--primary-container)", animation: "spin 1s linear infinite" }}
+            />
+          </div>
         ) : stats && (
           <>
             <div className="grid grid-cols-3 gap-2">
@@ -144,16 +148,16 @@ function WorkerDetail({ worker, onBack }: { worker: User; onBack: () => void }) 
                 { label: "Selesai", value: stats.completedOrders, icon: <CheckCircle className="w-3.5 h-3.5" />, color: "#10B981" },
                 { label: "Rating", value: `${Number(worker.rating ?? 5).toFixed(1)}⭐`, icon: <TrendingUp className="w-3.5 h-3.5" />, color: "#F59E0B" },
               ].map((s) => (
-                <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+                <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}>
                   <div className="flex justify-center mb-1.5" style={{ color: s.color }}>{s.icon}</div>
-                  <p className="text-lg font-black" style={{ color: "var(--text)" }}>{s.value}</p>
-                  <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{s.label}</p>
+                  <p className="text-lg font-black" style={{ color: "var(--on-surface)" }}>{s.value}</p>
+                  <p className="text-xs font-medium" style={{ color: "var(--outline)" }}>{s.label}</p>
                 </div>
               ))}
             </div>
 
             {/* Earnings */}
-            <div className="rounded-xl p-4 gradient-cyan text-white">
+            <div className="rounded-xl p-4 premium-gradient text-white">
               <p className="text-xs font-semibold opacity-75">Total Penghasilan</p>
               <p className="text-2xl font-black mt-1">₺{stats.totalEarnings.toLocaleString("tr-TR")}</p>
             </div>
@@ -161,7 +165,7 @@ function WorkerDetail({ worker, onBack }: { worker: User; onBack: () => void }) 
             {/* Active order */}
             {stats.activeOrder && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>Order Aktif</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "var(--outline)" }}>Order Aktif</p>
                 <OrderRow order={stats.activeOrder} />
               </div>
             )}
@@ -169,7 +173,7 @@ function WorkerDetail({ worker, onBack }: { worker: User; onBack: () => void }) 
             {/* Recent orders */}
             {stats.recentOrders.length > 0 && (
               <div>
-                <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "var(--text-muted)" }}>Riwayat Order</p>
+                <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "var(--outline)" }}>Riwayat Order</p>
                 <div className="space-y-2">
                   {stats.recentOrders.map((o) => <OrderRow key={o.id} order={o} />)}
                 </div>
@@ -185,15 +189,15 @@ function WorkerDetail({ worker, onBack }: { worker: User; onBack: () => void }) 
 function OrderRow({ order }: { order: Order }) {
   const sc = statusColors[order.status] ?? { bg: "#F3F4F6", text: "#6B7280" };
   return (
-    <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--bg)", border: "1px solid var(--border)" }}>
+    <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-xs font-semibold capitalize truncate" style={{ color: "var(--text)" }}>{order.serviceType}</p>
+          <p className="text-xs font-semibold capitalize truncate" style={{ color: "var(--on-surface)" }}>{order.serviceType}</p>
           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0" style={{ background: sc.bg, color: sc.text }}>{statusLabel[order.status]}</span>
         </div>
-        <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>{order.pickupAddress}</p>
+        <p className="text-xs truncate" style={{ color: "var(--outline)" }}>{order.pickupAddress}</p>
       </div>
-      <p className="text-xs font-bold shrink-0" style={{ color: "var(--text)" }}>₺{order.price.toLocaleString("tr-TR")}</p>
+      <p className="text-xs font-bold shrink-0" style={{ color: "var(--on-surface)" }}>₺{order.price.toLocaleString("tr-TR")}</p>
     </div>
   );
 }
@@ -206,7 +210,6 @@ export function WorkersPage() {
   const { data: workersData, refetch } = trpc.admin.listUsers.useQuery({ limit: 50, cursor, role: "worker" });
   const workers = workersData?.items ?? [];
   const selectedWorker = workers.find((w) => w.id === selectedWorkerId) ?? null;
-
   const onlineCount = workers.filter((w) => w.isOnline).length;
 
   return (
@@ -228,10 +231,7 @@ export function WorkersPage() {
           <span className="text-sm font-bold" style={{ color: "var(--on-surface)" }}>
             {locations.size} lokasi aktif
           </span>
-          <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{ background: "#d1fae5", color: "#059669" }}
-          >
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "#d1fae5", color: "#059669" }}>
             {onlineCount} online
           </span>
         </div>
@@ -248,10 +248,7 @@ export function WorkersPage() {
           ) : (
             <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col h-full">
               {/* Header */}
-              <div
-                className="p-4 flex items-center justify-between"
-                style={{ borderBottom: "1px solid var(--outline-variant)" }}
-              >
+              <div className="p-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--outline-variant)" }}>
                 <div>
                   <h1 className="font-extrabold text-sm" style={{ color: "var(--on-surface)" }}>Pekerja</h1>
                   <p className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
@@ -278,7 +275,7 @@ export function WorkersPage() {
                       className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-[0.98]"
                       style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}
                     >
-                      <div className="w-10 h-10 rounded-full gradient-cyan flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-full premium-gradient flex items-center justify-center shrink-0">
                         <span className="text-white font-bold text-sm">
                           {(worker.name ?? "?")[0].toUpperCase()}
                         </span>

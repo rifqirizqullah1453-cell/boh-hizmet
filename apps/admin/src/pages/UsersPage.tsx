@@ -60,7 +60,7 @@ export function UsersPage() {
   const onlineCount = (data?.items ?? []).filter((u) => u.isOnline).length;
 
   return (
-    <div className="px-4 py-5 max-w-2xl mx-auto">
+    <div className="px-4 md:px-8 py-5 md:py-7 max-w-5xl mx-auto">
 
       {/* Stats bento */}
       <div className="grid grid-cols-2 gap-3 mb-5">
