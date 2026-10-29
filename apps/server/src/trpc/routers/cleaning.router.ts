@@ -64,6 +64,7 @@ export const cleaningRouter = router({
           pickupLng:      lng,
           price:          estimate.total,
           customerName:   ctx.user.name ?? "Customer",
+          customerFirebaseUid: ctx.user.firebaseUid,
           workerId:       null,
           createdAt:      Date.now(),
         });

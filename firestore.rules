@@ -5,8 +5,9 @@ service cloud.firestore {
 
     // active_orders: read-only mirror for Worker/Client Apps.
     // All writes go through the server's Firebase Admin SDK (bypasses rules).
+    // ponytail: any signed-in user can read; per-role scoping needs custom claims.
     match /active_orders/{orderId} {
-      allow read: if true;
+      allow read: if request.auth != null;
       allow write: if false;
     }
 
@@ -19,9 +20,16 @@ service cloud.firestore {
 
     // chats: in-app messaging between worker and customer for an order.
     // Messages are append-only — no updates or deletes allowed.
+    // Only the order's customer/worker (per the active_orders mirror) may access.
     match /chats/{orderId}/messages/{messageId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null
+      function isParticipant() {
+        let o = get(/databases/$(database)/documents/active_orders/$(orderId)).data;
+        return request.auth != null
+          && (o.get('customerFirebaseUid', '') == request.auth.uid
+              || o.get('workerFirebaseUid', '') == request.auth.uid);
+      }
+      allow read: if isParticipant();
+      allow create: if isParticipant()
         && request.resource.data.senderId == request.auth.uid
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0

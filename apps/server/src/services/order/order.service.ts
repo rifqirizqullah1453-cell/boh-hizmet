@@ -93,6 +93,7 @@ export async function createOrder(db: Database, customer: User, input: CreateOrd
       destinationLng: input.destinationLng,
       price,
       customerName: customer.name ?? "Customer",
+      customerFirebaseUid: customer.firebaseUid,
       workerId: null,
       createdAt: Date.now(),
       notes: input.notes ?? null,
@@ -119,6 +120,10 @@ export async function createOrder(db: Database, customer: User, input: CreateOrd
 }
 
 export async function acceptOrder(db: Database, worker: User, orderId: string) {
+  if (worker.role !== "worker") {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only workers can accept orders." });
+  }
+
   // Guard: a worker can only hold one active job at a time. This check runs
   // before the atomic UPDATE so it isn't fully race-proof against two
   // simultaneous tabs, but in practice that scenario is so unlikely at

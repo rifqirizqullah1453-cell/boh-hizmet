@@ -7,7 +7,8 @@ const latitude = z.number().min(-90).max(90);
 const longitude = z.number().min(-180).max(180);
 
 export const createOrderInput = z.object({
-  serviceType: serviceTypeSchema,
+  // cleaning/moving have their own routers (DB-driven pricing); distance pricing here would underprice them.
+  serviceType: z.enum(["delivery", "shopping"]),
   pickupAddress: z.string().min(1),
   pickupLat: latitude,
   pickupLng: longitude,
@@ -70,6 +71,7 @@ export const activeOrderDoc = z.object({
   customerName: z.string(),
   workerId: z.string().nullable(),
   workerFirebaseUid: z.string().nullable().optional(),
+  customerFirebaseUid: z.string().optional(), // lets firestore.rules scope chat access to participants
   createdAt: z.number(), // epoch ms, set by server at broadcast time
   notes: z.string().nullable().optional(),
 });

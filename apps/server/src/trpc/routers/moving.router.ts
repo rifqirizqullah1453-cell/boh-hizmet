@@ -60,6 +60,7 @@ export const movingRouter = router({
           pickupLng,
           price:          estimate.total,
           customerName:   ctx.user.name ?? "Customer",
+          customerFirebaseUid: ctx.user.firebaseUid,
           workerId:       null,
           createdAt:      Date.now(),
         });
